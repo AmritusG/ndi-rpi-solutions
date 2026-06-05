@@ -22,6 +22,7 @@ SOFTWARE.
 
 ---
 
-NOTE: This software requires the NDI SDK (libndi.so) which is a separate
-product by Vizrt NDI AB. The NDI SDK is subject to its own license agreement.
-See https://ndi.video/sdk/ for NDI SDK licensing terms.
+DEPENDENCY NOTE: This project does not include or redistribute the NDI SDK.
+It calls libndi.so, which users install separately (free download from
+https://ndi.video/sdk/). All code in this repository is MIT-licensed as above.
+Use of the NDI SDK itself is governed by NDI's own terms.

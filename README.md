@@ -72,5 +72,6 @@ Open `http://YOURHOSTNAME.local:5000` from any device on the same network.
 
 ## License
 
-This project uses the NDI SDK which is subject to the NDI SDK license agreement.
-See https://ndi.video/sdk/ for details.
+MIT — see [LICENSE](LICENSE).
+
+This project does not bundle the NDI SDK. It calls `libndi.so`, which you install separately (free download from https://ndi.video/sdk/). All code here is MIT-licensed.
