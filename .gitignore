@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+ndi-env/
+venv/
+.venv/
+
+# Config and runtime
+config.json
+*.log
+/tmp/
+
+# NDI SDK (must be installed separately)
+libndi*.so*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads and generated files
+static/images/*
+!static/images/.gitkeep

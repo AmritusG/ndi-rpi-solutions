@@ -1,0 +1,21 @@
+[Unit]
+Description=NDI Video Receiver (Headless)
+After=network-online.target avahi-daemon.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/ndi-rpi-solution
+Environment=PATH=/home/pi/ndi-env/bin:/usr/local/bin:/usr/bin
+Environment=LD_LIBRARY_PATH=/opt/ndi/lib
+# Adjust --source to match your NDI sender name
+ExecStart=/home/pi/ndi-env/bin/python3 /home/pi/ndi-rpi-solution/ndi_receiver.py --headless --output /home/pi/ndi-frames --save-fps 1
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

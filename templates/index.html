@@ -1,0 +1,3047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDI Control Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-primary:#0a0c10; --bg-card:#12151c; --bg-card-hover:#181c26;
+  --bg-input:#0d1017; --border:#1e2330; --border-focus:#3b82f6;
+  --text-primary:#e8eaf0; --text-secondary:#8490a5; --text-muted:#505a6e;
+  --accent-blue:#3b82f6; --accent-green:#10b981; --accent-red:#ef4444;
+  --accent-amber:#f59e0b; --accent-violet:#8b5cf6; --accent-cyan:#06b6d4;
+  --glow-blue:0 0 20px rgba(59,130,246,0.25); --glow-green:0 0 20px rgba(16,185,129,0.25);
+  --radius:10px; --font-mono:'JetBrains Mono',monospace; --font-sans:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+html { font-size: 15px; }
+body { font-family:var(--font-sans); background:var(--bg-primary); color:var(--text-primary); min-height:100vh; }
+body::before { content:''; position:fixed; inset:0; background:radial-gradient(ellipse at 20% 0%,rgba(59,130,246,0.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(139,92,246,0.05) 0%,transparent 60%); pointer-events:none; z-index:0; }
+.shell { position:relative; z-index:1; max-width:1280px; margin:0 auto; padding:24px 20px 60px; }
+header { display:flex; align-items:center; justify-content:space-between; padding-bottom:28px; border-bottom:1px solid var(--border); margin-bottom:32px; }
+.logo { display:flex; align-items:center; gap:14px; }
+.logo-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--accent-blue),var(--accent-violet)); display:grid; place-items:center; font-family:var(--font-mono); font-weight:700; font-size:14px; color:#fff; box-shadow:var(--glow-blue); }
+.logo h1 { font-size:1.35rem; font-weight:600; } .logo h1 span { color:var(--text-muted); font-weight:400; font-size:0.85rem; }
+.host-badge { font-family:var(--font-mono); font-size:0.78rem; color:var(--text-secondary); background:var(--bg-card); border:1px solid var(--border); padding:6px 14px; border-radius:20px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:20px; }
+@media (max-width:520px) { .grid { grid-template-columns:1fr; } }
+.card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color 0.2s; }
+.card:hover { border-color:#2a3040; }
+.card-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border); }
+.card-title { font-weight:600; font-size:1rem; display:flex; align-items:center; gap:10px; }
+.card-body { padding:20px; display:flex; flex-direction:column; gap:16px; }
+.dot { width:9px; height:9px; border-radius:50%; background:var(--text-muted); display:inline-block; flex-shrink:0; }
+.dot.running { background:var(--accent-green); box-shadow:var(--glow-green); }
+.dot.error { background:var(--accent-red); }
+.status-badge { font-family:var(--font-mono); font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; padding:4px 10px; border-radius:6px; }
+.status-badge.stopped { background:rgba(80,90,110,0.15); color:var(--text-muted); }
+.status-badge.starting { background:rgba(245,158,11,0.12); color:var(--accent-amber); }
+.status-badge.running { background:rgba(16,185,129,0.12); color:var(--accent-green); }
+.status-badge.error { background:rgba(239,68,68,0.12); color:var(--accent-red); }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:0.78rem; font-weight:500; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; }
+.field select, .field input[type="text"], .field input[type="number"] { background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text-primary); font-family:var(--font-mono); font-size:0.85rem; }
+.field select:focus, .field input:focus { outline:none; border-color:var(--border-focus); }
+.row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.btn-row { display:flex; gap:10px; margin-top:4px; }
+.btn { font-family:var(--font-sans); font-weight:600; font-size:0.82rem; padding:10px 20px; border-radius:8px; border:none; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.btn:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-start { background:var(--accent-green); color:#fff; } .btn-start:not(:disabled):hover { background:#0ea572; }
+.btn-stop { background:rgba(239,68,68,0.15); color:var(--accent-red); border:1px solid rgba(239,68,68,0.25); } .btn-stop:not(:disabled):hover { background:rgba(239,68,68,0.25); }
+.btn-secondary { background:rgba(59,130,246,0.12); color:var(--accent-blue); border:1px solid rgba(59,130,246,0.2); } .btn-secondary:not(:disabled):hover { background:rgba(59,130,246,0.2); }
+.btn-hdmi { background:rgba(6,182,212,0.15); color:var(--accent-cyan); border:1px solid rgba(6,182,212,0.25); } .btn-hdmi:not(:disabled):hover { background:rgba(6,182,212,0.3); }
+.discover-row { display:flex; align-items:center; gap:12px; }
+.hint { font-size:0.78rem; color:var(--text-muted); }
+.source-list { list-style:none; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+.source-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; border:1px solid transparent; cursor:pointer; transition:all 0.15s; font-family:var(--font-mono); font-size:0.82rem; }
+.source-item:hover { background:var(--bg-card-hover); border-color:var(--border); }
+.source-item.selected { background:rgba(59,130,246,0.08); border-color:var(--accent-blue); }
+.radio { width:16px; height:16px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; display:grid; place-items:center; }
+.source-item.selected .radio { border-color:var(--accent-blue); }
+.source-item.selected .radio::after { content:''; width:8px; height:8px; border-radius:50%; background:var(--accent-blue); }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); border-top:1px solid var(--border); padding:14px 20px; gap:10px; }
+.stat { text-align:center; }
+.stat-value { font-family:var(--font-mono); font-weight:600; font-size:1.1rem; color:var(--accent-blue); }
+.stat-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); margin-top:2px; }
+.preview-wrap { position:relative; width:100%; background:#000; border-radius:8px; overflow:hidden; aspect-ratio:16/9; }
+.preview-wrap img { width:100%; height:100%; object-fit:contain; display:block; }
+.preview-placeholder { position:absolute; inset:0; display:grid; place-items:center; font-size:0.75rem; color:var(--text-muted); }
+.toggle-row { display:flex; align-items:center; gap:12px; padding:4px 0; }
+.toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; position:absolute; }
+.toggle-slider { position:absolute; inset:0; background:var(--border); border-radius:12px; cursor:pointer; transition:0.25s; }
+.toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:var(--text-secondary); border-radius:50%; transition:0.25s; }
+.toggle input:checked + .toggle-slider { background:var(--accent-green); }
+.toggle input:checked + .toggle-slider::before { transform:translateX(20px); background:#fff; }
+.toggle-label { font-size:0.88rem; font-weight:500; }
+.toggle-desc { font-size:0.72rem; color:var(--text-muted); }
+.info-box { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.12); padding:10px 14px; border-radius:8px; }
+.spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--accent-blue); border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.full-width { grid-column:1/-1; }
+.error-msg { font-family:var(--font-mono); font-size:0.78rem; color:var(--accent-red); background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15); padding:10px 14px; border-radius:8px; margin-top:4px; word-break:break-word; }
+.divider { border-top:1px solid var(--border); margin:8px 0; }
+::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-track { background:var(--bg-primary); } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ── Viewport: 2-col masonry layout ── */
+.viewport-grid { column-count:2; column-gap:20px; }
+.viewport-grid.cols-1 { column-count:1; max-width:700px; }
+@media (max-width:900px) { .viewport-grid { column-count:1; } }
+.section-wrap { min-width:0; break-inside:avoid; margin-bottom:20px; }
+.section-wrap.span-2 { column-span:all; }
+@media (max-width:900px) { .section-wrap.span-2 { column-span:none; } }
+
+/* Collapse */
+.card-head { cursor:pointer; user-select:none; }
+.card-head .chevron { transition:transform 0.2s; font-size:0.7rem; color:var(--text-muted); margin-left:auto; padding-left:12px; }
+.card-head .chevron.collapsed { transform:rotate(-90deg); }
+.card-collapse { overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s ease; max-height:2000px; opacity:1; }
+.card-collapse.collapsed { max-height:0 !important; opacity:0; }
+.card .stats.collapsed-stats { display:none !important; }
+
+/* Drag */
+.section-wrap { transition:opacity 0.15s; }
+.section-wrap.dragging { opacity:0.4; }
+.section-wrap.drag-over { box-shadow:0 0 0 2px var(--accent-blue); border-radius:var(--radius); }
+.card-head .drag-grip { cursor:grab; color:var(--text-muted); font-size:0.85rem; margin-right:8px; flex-shrink:0; opacity:0.4; }
+.card-head:hover .drag-grip { opacity:0.8; }
+.card-head .drag-grip:active { cursor:grabbing; }
+
+/* Multiview width toggle */
+.mv-width-toggle { display:flex; gap:0; border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-left:8px; }
+.mv-width-toggle button { background:transparent; border:none; color:var(--text-muted); font-size:0.65rem; padding:3px 8px; cursor:pointer; font-family:var(--font-mono); }
+.mv-width-toggle button.active { background:var(--accent-blue); color:#fff; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">NDI</div>
+      <h1>Control Panel <span>/ Raspberry Pi</span></h1>
+    </div>
+    <div class="host-badge" id="hostname">loading…</div>
+  </header>
+
+  <div class="viewport-grid" id="viewport-grid">
+
+    <!-- ═══ SENDER ═══ -->
+    <div class="section-wrap" data-section="sender" draggable="true">
+    <div class="card" >
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="sender-dot"></span> Sender</div><span class="status-badge stopped" id="sender-status">STOPPED</span><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="sender">
+      <div class="card-body">
+        <div class="field"><label>Source</label><select id="s-source" onchange="senderSourceChange()"><option value="test">Test Pattern</option><option value="webcam">USB Webcam</option><option value="picamera">Pi Camera</option><option value="csi_hdmi">CSI HDMI Capture</option></select></div>
+        <div class="field" id="s-device-field" style="display:none"><label>Device</label><select id="s-device"></select></div>
+        <div class="field"><label>NDI Name</label><input type="text" id="s-name" placeholder="e.g. Studio-A"></div>
+        <div class="row-3">
+          <div class="field"><label>Width</label><select id="s-width"><option value="640">640</option><option value="1280" selected>1280</option><option value="1920">1920</option></select></div>
+          <div class="field"><label>Height</label><select id="s-height"><option value="360">360</option><option value="720" selected>720</option><option value="1080">1080</option></select></div>
+          <div class="field"><label>FPS</label><select id="s-fps"><option value="25">25</option><option value="30" selected>30</option><option value="50">50</option><option value="60">60</option></select></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-start" id="sender-start" onclick="senderStart()">▶ Start</button><button class="btn btn-stop" id="sender-stop" onclick="senderStop()" disabled>■ Stop</button></div>
+        <div class="error-msg" id="sender-error" style="display:none"></div>
+      </div>
+      <div class="stats" id="sender-stats" style="display:none">
+        <div class="stat"><div class="stat-value" id="ss-fps">0</div><div class="stat-label">FPS</div></div>
+        <div class="stat"><div class="stat-value" id="ss-frames">0</div><div class="stat-label">Frames</div></div>
+        <div class="stat"><div class="stat-value" id="ss-conns">0</div><div class="stat-label">Viewers</div></div>
+        <div class="stat"><div class="stat-value" id="ss-res">—</div><div class="stat-label">Resolution</div></div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ RECEIVER PREVIEW ═══ -->
+    <div class="section-wrap" data-section="receiver" draggable="true">
+    <div class="card" >
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="receiver-dot"></span> Receiver Preview</div><span class="status-badge stopped" id="receiver-status">STOPPED</span><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="receiver">
+      <div class="card-body">
+        <div class="discover-row"><button class="btn btn-secondary" onclick="discoverSources()" id="discover-btn">Scan Network</button><span class="hint" id="discover-hint">Find NDI sources</span></div>
+        <ul class="source-list" id="source-list"><li style="color:var(--text-muted);font-size:0.8rem;padding:8px 0;">Click Scan to find sources</li></ul>
+        <div class="btn-row"><button class="btn btn-start" id="receiver-start" onclick="receiverStart()" disabled>▶ Receive</button><button class="btn btn-stop" id="receiver-stop" onclick="receiverStop()" disabled>■ Stop</button></div>
+        <div class="error-msg" id="receiver-error" style="display:none"></div>
+      </div>
+      <div class="stats" id="receiver-stats" style="display:none">
+        <div class="stat"><div class="stat-value" id="rs-fps">0</div><div class="stat-label">FPS</div></div>
+        <div class="stat"><div class="stat-value" id="rs-frames">0</div><div class="stat-label">Frames</div></div>
+        <div class="stat"><div class="stat-value" id="rs-res">—</div><div class="stat-label">Resolution</div></div>
+      </div>
+    </div></div>
+    </div>
+
+    <!-- ═══ PTZ CONTROL ═══ -->
+    <div class="section-wrap" data-section="ptz" draggable="true">
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="ptz-dot"></span> PTZ Control</div><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="ptz">
+      <div class="card-body" style="padding:8px 12px">
+        <div class="row-2" style="gap:8px;margin-bottom:6px">
+          <div class="field" style="margin:0"><label>Mode</label><select id="ptz-mode" onchange="ptzModeChange()">
+            <option value="usb">USB Camera</option><option value="ndi">NDI Source</option>
+          </select></div>
+          <div class="field" style="margin:0" id="ptz-usb-opts"><label>Device</label><select id="ptz-usb-device"></select></div>
+        </div>
+        <div id="ptz-ndi-opts" style="display:none;margin-bottom:6px">
+          <div class="field" style="margin:0 0 4px"><label>Source</label><select id="ptz-ndi-source"></select></div>
+          <div style="display:flex;gap:4px;align-items:center"><button class="btn btn-secondary" style="padding:4px 10px;font-size:0.75rem" onclick="ptzNdiConnect()">Connect</button><button class="btn btn-secondary" style="padding:4px 10px;font-size:0.75rem" onclick="ptzNdiDisconnect()">Disconnect</button><span class="hint" id="ptz-ndi-status" style="margin-left:6px;font-size:0.7rem">Not connected</span></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div>
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;text-align:center">Pan / Tilt</div>
+            <div style="display:grid;grid-template-columns:repeat(3,36px);gap:3px;justify-content:center">
+              <div></div>
+              <button class="btn btn-secondary" style="padding:5px 0;font-size:0.9rem" onmousedown="ptzMove(0,-1)" onmouseup="ptzStop()" ontouchstart="ptzMove(0,-1)" ontouchend="ptzStop()">▲</button>
+              <div></div>
+              <button class="btn btn-secondary" style="padding:5px 0;font-size:0.9rem" onmousedown="ptzMove(-1,0)" onmouseup="ptzStop()" ontouchstart="ptzMove(-1,0)" ontouchend="ptzStop()">◀</button>
+              <button class="btn btn-secondary" style="padding:5px 0;font-size:0.55rem" onclick="ptzHome()">HOME</button>
+              <button class="btn btn-secondary" style="padding:5px 0;font-size:0.9rem" onmousedown="ptzMove(1,0)" onmouseup="ptzStop()" ontouchstart="ptzMove(1,0)" ontouchend="ptzStop()">▶</button>
+              <div></div>
+              <button class="btn btn-secondary" style="padding:5px 0;font-size:0.9rem" onmousedown="ptzMove(0,1)" onmouseup="ptzStop()" ontouchstart="ptzMove(0,1)" ontouchend="ptzStop()">▼</button>
+              <div></div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">Zoom</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px">
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:0.8rem" onmousedown="ptzZoomDir(-1)" onmouseup="ptzZoomStop()" ontouchstart="ptzZoomDir(-1)" ontouchend="ptzZoomStop()">−</button>
+              <input type="range" id="ptz-zoom" min="0" max="100" value="0" style="flex:1" oninput="ptzZoomSet(this.value)">
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:0.8rem" onmousedown="ptzZoomDir(1)" onmouseup="ptzZoomStop()" ontouchstart="ptzZoomDir(1)" ontouchend="ptzZoomStop()">+</button>
+            </div>
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">Focus</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px">
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:0.8rem" onmousedown="ptzFocusDir(-1)" onmouseup="ptzFocusStop()" ontouchstart="ptzFocusDir(-1)" ontouchend="ptzFocusStop()">−</button>
+              <input type="range" id="ptz-focus" min="0" max="100" value="0" style="flex:1" oninput="ptzFocusSet(this.value)">
+              <button class="btn btn-secondary" style="padding:3px 8px;font-size:0.8rem" onmousedown="ptzFocusDir(1)" onmouseup="ptzFocusStop()" ontouchstart="ptzFocusDir(1)" ontouchend="ptzFocusStop()">+</button>
+              <button class="btn btn-secondary" id="ptz-af-btn" style="padding:3px 8px;font-size:0.65rem;white-space:nowrap" onclick="ptzAutoFocus()">AF</button>
+            </div>
+            <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">Presets</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(0)">1</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(1)">2</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(2)">3</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(3)">4</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(4)">5</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(5)">6</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(6)">7</button>
+              <button class="btn btn-secondary" style="padding:4px 0;font-size:0.7rem" onclick="ptzPresetRecall(7)">8</button>
+            </div>
+            <button class="btn btn-secondary" id="ptz-store-btn" onclick="ptzStoreToggle()" style="font-size:0.65rem;padding:2px 8px;margin-top:3px">Store Preset…</button>
+            <div id="ptz-store-row" style="display:none;margin-top:2px">
+              <div class="hint" style="font-size:0.65rem">Click a preset above to store</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ HDMI OUTPUT A ═══ -->
+    <div class="section-wrap" data-section="hdmi0" draggable="true">
+    <div class="card" id="hdmi0-card"" id="hdmi0-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="hdmi0-dot"></span> HDMI Output A</div><span class="status-badge stopped" id="hdmi0-status">STOPPED</span><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="hdmi0">
+      <div class="card-body">
+        <div class="info-box">Output NDI to HDMI. Uses SDL2 when desktop is running, framebuffer when headless (no desktop). Leave mode on Auto-detect unless you boot to CLI.</div>
+        <div class="field"><label>NDI Source</label><select id="h0-source" class="hdmi-source" onchange="autostartSync(0)"><option value="">— Scan network first —</option></select></div>
+        <div class="field"><label>Output Resolution</label>
+          <div class="toggle-row" style="margin-bottom:6px"><label class="toggle"><input type="checkbox" id="h0-streamres" checked onchange="streamResToggle(0)"><span class="toggle-slider"></span></label><div class="toggle-desc">Use stream resolution (no CPU scaling)</div></div>
+          <select id="h0-resolution" class="hdmi-res" onchange="autostartSync(0)" disabled></select></div>
+        <div class="field"><label>Display Mode</label><select id="h0-mode" onchange="autostartSync(0)"><option value="auto">Auto-detect (recommended)</option><option value="desktop">Desktop (SDL2 — requires display server)</option><option value="framebuffer">Framebuffer (headless only — no desktop)</option></select></div>
+        <div class="btn-row">
+          <button class="btn btn-hdmi" id="hdmi0-start" onclick="hdmiStart(0)">⎆ Start Output A</button>
+          <button class="btn btn-stop" id="hdmi0-stop" onclick="hdmiStop(0)" disabled>■ Stop</button>
+        </div>
+        <div class="error-msg" id="hdmi0-error" style="display:none"></div>
+        <div class="divider"></div>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="auto0-enabled" onchange="autostartToggle(0)"><span class="toggle-slider"></span></label>
+          <div><div class="toggle-label">Autostart on boot</div><div class="toggle-desc" id="auto0-desc">Start this output on boot. Sets HDMI resolution + 32bpp framebuffer for pixel-perfect CLI output.</div></div>
+        </div>
+      </div>
+      <div class="stats" id="hdmi0-stats" style="display:none">
+        <div class="stat"><div class="stat-value" id="hs0-fps">0</div><div class="stat-label">FPS</div></div>
+        <div class="stat"><div class="stat-value" id="hs0-frames">0</div><div class="stat-label">Frames</div></div>
+        <div class="stat"><div class="stat-value" id="hs0-res">—</div><div class="stat-label">Resolution</div></div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ HDMI OUTPUT B ═══ -->
+    <div class="section-wrap" data-section="hdmi1" draggable="true">
+    <div class="card" id="hdmi1-card"" id="hdmi1-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="hdmi1-dot"></span> HDMI Output B</div><span class="status-badge stopped" id="hdmi1-status">STOPPED</span><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="hdmi1">
+      <div class="card-body">
+        <div class="info-box">A second output preset — configure a different source or resolution and switch between A and B.</div>
+        <div class="field"><label>NDI Source</label><select id="h1-source" class="hdmi-source" onchange="autostartSync(1)"><option value="">— Scan network first —</option></select></div>
+        <div class="field"><label>Output Resolution</label>
+          <div class="toggle-row" style="margin-bottom:6px"><label class="toggle"><input type="checkbox" id="h1-streamres" checked onchange="streamResToggle(1)"><span class="toggle-slider"></span></label><div class="toggle-desc">Use stream resolution (no CPU scaling)</div></div>
+          <select id="h1-resolution" class="hdmi-res" onchange="autostartSync(1)" disabled></select></div>
+        <div class="field"><label>Display Mode</label><select id="h1-mode" onchange="autostartSync(1)"><option value="auto">Auto-detect (recommended)</option><option value="desktop">Desktop (SDL2 — requires display server)</option><option value="framebuffer">Framebuffer (headless only — no desktop)</option></select></div>
+        <div class="btn-row">
+          <button class="btn btn-hdmi" id="hdmi1-start" onclick="hdmiStart(1)">⎆ Start Output B</button>
+          <button class="btn btn-stop" id="hdmi1-stop" onclick="hdmiStop(1)" disabled>■ Stop</button>
+        </div>
+        <div class="error-msg" id="hdmi1-error" style="display:none"></div>
+        <div class="divider"></div>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="auto1-enabled" onchange="autostartToggle(1)"><span class="toggle-slider"></span></label>
+          <div><div class="toggle-label">Autostart on boot</div><div class="toggle-desc" id="auto1-desc">Start this output on boot. Sets HDMI resolution + 32bpp framebuffer for pixel-perfect CLI output.</div></div>
+        </div>
+      </div>
+      <div class="stats" id="hdmi1-stats" style="display:none">
+        <div class="stat"><div class="stat-value" id="hs1-fps">0</div><div class="stat-label">FPS</div></div>
+        <div class="stat"><div class="stat-value" id="hs1-frames">0</div><div class="stat-label">Frames</div></div>
+        <div class="stat"><div class="stat-value" id="hs1-res">—</div><div class="stat-label">Resolution</div></div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ MULTIVIEW ═══ -->
+    <div class="section-wrap span-2" data-section="multiview" draggable="true">
+    <div class="card" id="multiview-card"" id="multiview-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="mv-dot"></span> Multiview</div><span class="status-badge stopped" id="mv-status">STOPPED</span><div class="mv-width-toggle" onclick="event.stopPropagation()"><button onclick="mvSetWidth(1)" id="mv-w1" title="Single column">1 col</button><button onclick="mvSetWidth(2)" id="mv-w2" class="active" title="Full width">2 col</button></div><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="multiview">
+      <div class="card-body">
+        <div class="info-box">Drag NDI sources onto grid tiles. Drag dividers between tiles to resize. Click tally to cycle NONE → PGM → PVW.</div>
+
+        <!-- Controls row -->
+        <div style="display:flex;gap:16px;align-items:end;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Rows</label>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="mvAddRow(-1)">−</button>
+            <span id="mv-row-count" style="font-family:var(--font-mono);font-size:1rem;min-width:20px;text-align:center">2</span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="mvAddRow(1)">+</button>
+          </div>
+          <div class="field" style="flex:1;min-width:140px"><label>Output Resolution</label><select id="mv-output-res"><option value="">Screen native</option><option value="1920x1080" selected>1920×1080</option><option value="1280x720">1280×720</option></select></div>
+          <div class="field" style="min-width:120px"><label>Mode</label><select id="mv-mode"><option value="auto">Auto-detect</option><option value="desktop">Desktop (SDL2)</option><option value="framebuffer">Framebuffer</option></select></div>
+        </div>
+
+        <!-- Source palette -->
+        <div style="margin-top:12px">
+          <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">NDI Sources — drag onto tiles</label>
+          <div id="mv-source-palette" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:32px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px">
+            <span style="color:var(--text-muted);font-size:0.78rem">Click Scan Network first</span>
+          </div>
+        </div>
+
+        <!-- Image library -->
+        <div style="margin-top:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Images — drag onto tiles or drop file on tile</label>
+            <label class="btn btn-secondary" style="padding:3px 10px;font-size:0.72rem;cursor:pointer">+ Upload<input type="file" accept="image/*" onchange="mvUploadImage(event)" style="display:none"></label>
+          </div>
+          <div id="mv-image-palette" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:28px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px">
+            <span style="color:var(--text-muted);font-size:0.72rem">No images uploaded</span>
+          </div>
+        </div>
+
+        <!-- Flex grid -->
+        <div id="mv-grid" style="margin-top:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:6px;aspect-ratio:16/9;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box"></div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-secondary" onclick="mvUndo()" id="mv-undo" disabled style="padding:6px 12px;font-size:0.78rem">↩ Undo</button>
+          <button class="btn btn-secondary" onclick="mvRedo()" id="mv-redo" disabled style="padding:6px 12px;font-size:0.78rem">↪ Redo</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" onclick="mvSaveLayout()" style="padding:6px 12px;font-size:0.78rem">Save</button>
+          <button class="btn btn-secondary" onclick="mvExportLayout()" style="padding:6px 12px;font-size:0.78rem">Export</button>
+          <label class="btn btn-secondary" style="padding:6px 12px;font-size:0.78rem;cursor:pointer">Import<input type="file" accept=".json" onchange="mvImportLayout(event)" style="display:none"></label>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:center;margin-top:8px">
+          <div class="toggle-row"><label class="toggle"><input type="checkbox" id="mv-labels" checked><span class="toggle-slider"></span></label><span class="toggle-desc">Show labels</span></div>
+        </div>
+
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn btn-start" id="mv-start" onclick="mvStart()">▶ Start Multiview</button>
+          <button class="btn btn-stop" id="mv-stop" onclick="mvStop()" disabled>■ Stop</button>
+        </div>
+        <div class="error-msg" id="mv-error" style="display:none"></div>
+        <div class="divider"></div>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="mv-auto-enabled" onchange="mvAutostartToggle()"><span class="toggle-slider"></span></label>
+          <div><div class="toggle-label">Autostart on boot</div><div class="toggle-desc" id="mv-auto-desc">Start multiview automatically on boot with current tile configuration.</div></div>
+        </div>
+      </div>
+      <div id="mv-stats-wrap" style="display:none">
+        <div class="stats">
+          <div class="stat"><div class="stat-value" id="mv-comp-fps">0</div><div class="stat-label">Comp FPS</div></div>
+          <div class="stat"><div class="stat-value" id="mv-comp-frames">0</div><div class="stat-label">Frames</div></div>
+          <div class="stat"><div class="stat-value" id="mv-screen">—</div><div class="stat-label">Screen</div></div>
+          <div class="stat"><div class="stat-value" id="mv-tile-count">0</div><div class="stat-label">Tiles</div></div>
+        </div>
+        <div id="mv-tile-stats" style="padding:8px 20px 14px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary)"></div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ VIDEO WALL ═══ -->
+    <div class="section-wrap span-2" data-section="videowall" draggable="true">
+    <div class="card" id="wall-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="wall-dot"></span> Video Wall</div><span class="status-badge stopped" id="wall-status">STOPPED</span><div class="mv-width-toggle" onclick="event.stopPropagation()"><button onclick="wallSetWidth(1)" id="wall-w1" title="Single column">1 col</button><button onclick="wallSetWidth(2)" id="wall-w2" class="active" title="Full width">2 col</button></div><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="videowall">
+      <div class="card-body">
+        <div class="info-box">Distributed video wall — each Pi displays one crop region. One Pi acts as controller, pushing config to all workers.</div>
+
+        <!-- Source + grid config -->
+        <div style="display:flex;gap:16px;align-items:end;flex-wrap:wrap">
+          <div class="field" style="flex:2;min-width:200px"><label>NDI Source</label><select id="wall-source" class="hdmi-source" onchange="_wallCheckDirty()"><option value="">— Scan network first —</option></select></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Cols</label>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="wallGridResize('cols',-1)">−</button>
+            <span id="wall-cols" style="font-family:var(--font-mono);font-size:1rem;min-width:20px;text-align:center">2</span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="wallGridResize('cols',1)">+</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Rows</label>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="wallGridResize('rows',-1)">−</button>
+            <span id="wall-rows" style="font-family:var(--font-mono);font-size:1rem;min-width:20px;text-align:center">2</span>
+            <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.85rem" onclick="wallGridResize('rows',1)">+</button>
+          </div>
+        </div>
+
+        <!-- Settings row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:12px;align-items:end">
+          <div class="field"><label>Output Resolution</label>
+            <select id="wall-output-res" onchange="wallResChange()" style="height:44px;padding:0 14px">
+              <option value="">Display native</option>
+              <option value="3840x2160">3840×2160 (4K UHD)</option>
+              <option value="2560x1440">2560×1440 (QHD)</option>
+              <option value="1920x1200">1920×1200 (WUXGA)</option>
+              <option value="1920x1080" selected>1920×1080 (1080p)</option>
+              <option value="1600x900">1600×900</option>
+              <option value="1280x720">1280×720 (720p)</option>
+              <option value="1024x768">1024×768 (XGA)</option>
+              <option value="custom">Custom…</option>
+            </select>
+            <input type="text" id="wall-output-custom" placeholder="e.g. 1440x900" style="display:none;margin-top:6px;height:44px;padding:0 14px" onchange="_wallCheckDirty()">
+          </div>
+          <div class="field"><label>Buffer Frames</label><input type="number" id="wall-buffer" value="3" min="2" max="10" onchange="_wallCheckDirty()" style="height:44px;padding:0 14px"></div>
+          <div class="field"><label>Bezel (mm)</label><input type="number" id="wall-bezel" value="0" min="0" max="100" step="0.5" onchange="_wallCheckDirty()" style="height:44px;padding:0 14px"></div>
+          <div class="field"><label>Target FPS</label><input type="number" id="wall-target-fps" value="30" min="10" max="60" onchange="_wallCheckDirty()" style="height:44px;padding:0 14px"></div>
+        </div>
+
+        <!-- Visual grid -->
+        <div style="margin-top:16px">
+          <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Grid — drag nodes onto positions</label>
+          <div id="wall-grid" style="margin-top:6px;display:grid;gap:4px;aspect-ratio:16/9;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:6px"></div>
+        </div>
+
+        <!-- Discovered nodes -->
+        <div style="margin-top:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Wall Nodes</label>
+            <button class="btn btn-secondary" onclick="wallDiscover()" id="wall-discover-btn" style="padding:4px 12px;font-size:0.72rem">Scan Network</button>
+            <div style="flex:1"></div>
+            <input type="text" id="wall-add-host" placeholder="hostname or IP" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text-primary);font-family:var(--font-mono);font-size:0.75rem;width:160px">
+            <button class="btn btn-secondary" onclick="wallAddNode()" style="padding:4px 12px;font-size:0.72rem">+ Add</button>
+          </div>
+          <div id="wall-node-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:32px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px">
+            <span style="color:var(--text-muted);font-size:0.78rem">Click Scan to find nodes</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-start" id="wall-start" onclick="wallStart()">▶ Start Wall</button>
+          <button class="btn btn-stop" id="wall-stop" onclick="wallStop()" disabled>■ Stop</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" onclick="wallSaveConfig()" style="padding:6px 12px;font-size:0.78rem">Save Config</button>
+        </div>
+        <div class="error-msg" id="wall-error" style="display:none"></div>
+      </div>
+
+      <!-- Stats -->
+      <div id="wall-stats-wrap" style="display:none">
+        <div class="stats">
+          <div class="stat"><div class="stat-value" id="wall-node-count">0</div><div class="stat-label">Nodes</div></div>
+          <div class="stat"><div class="stat-value" id="wall-running-count">0</div><div class="stat-label">Running</div></div>
+          <div class="stat"><div class="stat-value" id="wall-source-res">—</div><div class="stat-label">Source</div></div>
+        </div>
+        <div id="wall-node-stats" style="padding:8px 20px 14px;font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary)"></div>
+      </div>
+    </div></div>
+    </div>
+
+
+    <!-- ═══ PREVIEW ═══ -->
+    <div class="section-wrap span-2" data-section="preview" draggable="true" id="preview-wrap" style="display:none">
+    <div class="card" id="preview-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot running"></span> Live Preview</div><span class="status-badge running" id="preview-source">—</span><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="preview">
+      <div class="card-body" style="padding:12px">
+        <div class="preview-wrap"><img id="preview-img" src="" alt="NDI Preview"><div class="preview-placeholder" id="preview-ph">Waiting for frames…</div></div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+
+    <!-- ═══ DIAGNOSTICS ═══ -->
+    <div class="section-wrap" data-section="diagnostics" draggable="true">
+    <div class="card" id="diag-card"" id="diag-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot" id="diag-dot"></span> Diagnostics</div><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="diagnostics">
+      <div class="card-body">
+        <div class="info-box">Receive benchmark: captures frames from an NDI source and measures throughput, frame timing, and estimated network bandwidth.</div>
+        <div class="field"><label>NDI Source</label><select id="diag-source" class="hdmi-source"><option value="">— Scan network first —</option></select></div>
+        <div class="row-3">
+          <div class="field"><label>Frames</label><input type="number" id="diag-frames" value="200" min="10" max="2000"></div>
+          <div class="field"><label>Timeout ms</label><input type="number" id="diag-timeout" value="50" min="5" max="500"></div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-secondary" id="diag-run" onclick="runBenchmark()">Run Benchmark</button></div>
+        </div>
+        <div class="error-msg" id="diag-error" style="display:none"></div>
+        <div id="diag-results" style="display:none">
+          <div class="divider"></div>
+          <div class="stats" style="display:grid">
+            <div class="stat"><div class="stat-value" id="dr-fps">—</div><div class="stat-label">Avg FPS</div></div>
+            <div class="stat"><div class="stat-value" id="dr-frametime">—</div><div class="stat-label">Frame Time</div></div>
+            <div class="stat"><div class="stat-value" id="dr-res">—</div><div class="stat-label">Resolution</div></div>
+            <div class="stat"><div class="stat-value" id="dr-bw">—</div><div class="stat-label">Bandwidth</div></div>
+            <div class="stat"><div class="stat-value" id="dr-datarate">—</div><div class="stat-label">Data Rate</div></div>
+            <div class="stat"><div class="stat-value" id="dr-dropped">—</div><div class="stat-label">Missed</div></div>
+          </div>
+          <pre class="info-box" id="dr-log" style="white-space:pre-wrap;max-height:160px;overflow-y:auto;margin-top:10px"></pre>
+        </div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+    <!-- ═══ SYSTEM SETTINGS ═══ -->
+    <div class="section-wrap" data-section="system" draggable="true">
+    <div class="card" id="sys-card"" id="sys-card">
+      <div class="card-head"><div class="card-title"><span class="drag-grip" title="Drag to reorder">⠿</span><span class="dot"></span> System Settings</div><span class="chevron">▼</span></div>
+      <div class="card-collapse" data-collapse="system">
+      <div class="card-body">
+        <div class="field">
+          <label>Boot Mode</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <select id="sys-bootmode">
+              <option value="">Loading…</option>
+            </select>
+            <button class="btn btn-secondary" onclick="setBootMode()">Apply</button>
+          </div>
+          <div class="hint" id="sys-boot-hint">Changes take effect on next reboot.</div>
+        </div>
+        <div class="error-msg" id="sys-error" style="display:none"></div>
+        <div class="divider"></div>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="sys-webpanel-auto" onchange="webPanelAutostartToggle()"><span class="toggle-slider"></span></label>
+          <div><div class="toggle-label">Web Panel autostart</div><div class="toggle-desc" id="sys-webpanel-desc">Start the control panel automatically on boot</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="sys-show-cli" onchange="showCliToggle()"><span class="toggle-slider"></span></label>
+          <div><div class="toggle-label">Show CLI on HDMI</div><div class="toggle-desc" id="sys-cli-desc">When output stops, show terminal with IP address instead of black screen</div></div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="field">
+          <label>NDI Extra IPs</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" id="sys-ndi-extra-ips" placeholder="e.g. 192.168.1.43, 10.0.0.5" style="flex:1">
+            <button class="btn btn-secondary" onclick="scanNdiIps()" id="sys-ndi-scan" style="padding:6px 12px;font-size:0.75rem;white-space:nowrap">Scan</button>
+            <button class="btn btn-secondary" onclick="saveNdiExtraIps()" style="padding:6px 12px;font-size:0.75rem;white-space:nowrap">Save</button>
+          </div>
+          <div class="hint" id="sys-ndi-hint">Comma-separated IPs for NDI HX cameras not found by auto-discovery.</div>
+        </div>
+
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-size:0.78rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Viewport Layout</label>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" onclick="vpSetCols(1)" id="vp-col1" style="padding:4px 10px;font-size:0.72rem;white-space:nowrap;height:32px">1 Col</button>
+          <button class="btn btn-secondary" onclick="vpSetCols(2)" id="vp-col2" style="padding:4px 10px;font-size:0.72rem;white-space:nowrap;height:32px">2 Col</button>
+          <span style="width:1px;height:20px;background:var(--border);margin:0 2px"></span>
+          <button class="btn btn-secondary" onclick="vpReset()" style="padding:4px 12px;font-size:0.72rem;white-space:nowrap;height:32px">Reset</button>
+          <button class="btn btn-secondary" onclick="vpSave()" style="padding:4px 12px;font-size:0.72rem;white-space:nowrap;height:32px">Save</button>
+          <button class="btn btn-secondary" onclick="vpLoadSaved()" id="vp-load-saved" style="padding:4px 12px;font-size:0.72rem;white-space:nowrap;height:32px;display:none">Last Saved</button>
+        </div>
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button class="btn btn-stop" onclick="systemReboot()" id="sys-reboot">⟳ Reboot Pi</button>
+          <button class="btn btn-secondary" onclick="systemShutdown()" id="sys-shutdown">⏻ Shutdown Pi</button>
+        </div>
+      </div>
+    </div></div>
+    </div>
+
+    
+
+  
+    <!-- Tile Label Settings Modal -->
+    <div id="mv-label-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;display:none;align-items:center;justify-content:center" onclick="if(event.target===this)mvCloseLabel()">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:380px;max-width:90vw">
+        <div style="font-weight:600;font-size:1rem;margin-bottom:16px">Tile Label Settings</div>
+        <div class="field" style="margin-bottom:12px"><label>Label Text</label><input type="text" id="ml-text" placeholder="Leave empty for source name" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-family:var(--font-mono);font-size:0.85rem;width:100%;box-sizing:border-box"></div>
+        <div style="display:flex;gap:12px;margin-bottom:12px"><div class="field" style="flex:1"><label>Vertical</label><select id="ml-position" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-size:0.85rem;width:100%"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option></select></div><div class="field" style="flex:1"><label>Horizontal</label><select id="ml-halign" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text-primary);font-size:0.85rem;width:100%"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></div></div>
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <div class="field" style="flex:1"><label>Text Color</label><input type="color" id="ml-color" value="#ffffff" style="width:100%;height:34px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--bg-input)"></div>
+          <div class="field" style="flex:1"><label>Background</label><input type="color" id="ml-bg" value="#000000" style="width:100%;height:34px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--bg-input)"></div>
+        </div>
+        <div class="toggle-row" style="margin-bottom:12px"><label class="toggle"><input type="checkbox" id="ml-use-bg"><span class="toggle-slider"></span></label><span class="toggle-desc">Custom background color (otherwise semi-transparent)</span></div>
+        <div class="toggle-row" style="margin-bottom:12px"><label class="toggle"><input type="checkbox" id="ml-tally"><span class="toggle-slider"></span></label><span class="toggle-desc">Use tally color as label background</span></div>
+        <div class="field" style="margin-bottom:16px"><label>Font Size</label><div style="display:flex;align-items:center;gap:10px"><input type="range" id="ml-scale" min="3" max="15" value="5" style="flex:1"><span id="ml-scale-val" style="font-family:var(--font-mono);font-size:0.8rem;min-width:30px">0.5</span></div></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+          <div class="toggle-row" style="flex:1"><label class="toggle"><input type="checkbox" id="ml-hidden"><span class="toggle-slider"></span></label><span class="toggle-desc">Hide label</span></div>
+          <button class="btn btn-secondary" onclick="mvCloseLabel()">Cancel</button>
+          <button class="btn btn-start" onclick="mvApplyLabel()">Apply</button>
+        </div>
+      </div>
+    </div>
+</div>
+</div>
+
+
+    <!-- Overlay Editor Modal -->
+    <div id="mv-overlay-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:110;align-items:center;justify-content:center" onclick="if(event.target===this)mvCloseOverlay()">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:95vw;max-width:95vw;max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="font-weight:600;font-size:1rem">Tile Overlays</div>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" onclick="_ovUndo()" id="mo-undo" disabled style="padding:4px 10px;font-size:0.72rem">↩ Undo</button>
+          <button class="btn btn-secondary" onclick="_ovRedo()" id="mo-redo" disabled style="padding:4px 10px;font-size:0.72rem">↪ Redo</button>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:160px;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              <label style="font-size:0.72rem;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Layers</label>
+              <div style="flex:1"></div>
+            </div>
+            <div id="mo-layer-list" style="display:flex;flex-direction:column;gap:3px;min-height:40px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px"></div>
+            <div style="margin-top:8px">
+              <div class="field"><label>Add Image</label><select id="mo-add-image" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-primary);font-size:0.78rem;width:100%"><option value="">Select image...</option></select></div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="field"><label>Scale</label><div style="display:flex;gap:4px"><input type="number" id="mo-scale" value="1.0" step="0.05" min="0.05" max="20" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-primary);font-size:0.8rem;flex:1;min-width:0;box-sizing:border-box"></div></div>
+            <div style="display:flex;gap:4px;margin-top:4px">
+              <button class="btn btn-secondary" onclick="_ovScaleFitWidth()" style="flex:1;padding:3px 4px;font-size:0.62rem" title="Scale to fill tile width">Full W</button>
+              <button class="btn btn-secondary" onclick="_ovScaleFitHeight()" style="flex:1;padding:3px 4px;font-size:0.62rem" title="Scale to fill tile height">Full H</button>
+              <button class="btn btn-secondary" onclick="_ovScaleFit()" style="flex:1;padding:3px 4px;font-size:0.62rem" title="Scale to fit inside tile">Fit</button>
+            </div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="position:relative;background:#111;border:1px solid var(--border);border-radius:6px;aspect-ratio:16/9;overflow:hidden;cursor:default" id="mo-preview" tabindex="0">
+              <div id="mo-overlay-layers" style="position:absolute;inset:0;pointer-events:none"></div>
+              <div id="mo-handles" style="position:absolute;pointer-events:none;display:none;border:1px dashed rgba(0,200,255,0.6)">
+                <div data-handle="tl" style="position:absolute;top:-4px;left:-4px;width:8px;height:8px;background:var(--accent-blue);border:1px solid #fff;cursor:nw-resize;pointer-events:auto"></div>
+                <div data-handle="tr" style="position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:var(--accent-blue);border:1px solid #fff;cursor:ne-resize;pointer-events:auto"></div>
+                <div data-handle="bl" style="position:absolute;bottom:-4px;left:-4px;width:8px;height:8px;background:var(--accent-blue);border:1px solid #fff;cursor:sw-resize;pointer-events:auto"></div>
+                <div data-handle="br" style="position:absolute;bottom:-4px;right:-4px;width:8px;height:8px;background:var(--accent-blue);border:1px solid #fff;cursor:se-resize;pointer-events:auto"></div>
+                <div data-handle="move" style="position:absolute;inset:0;cursor:move;pointer-events:auto"></div>
+              </div>
+              <div id="mo-coords" style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.85);color:#0f0;font-family:var(--font-mono);font-size:0.72rem;padding:3px 10px;border-radius:4px;pointer-events:none;z-index:2">Drop image here</div>
+              <div id="mo-drop-zone" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer" onclick="_ovDropZoneClick()">
+                <span id="mo-drop-text" style="color:var(--text-muted);font-size:0.85rem">Drop image here or click to add</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:6px;align-items:center">
+              <div class="toggle-row" style="gap:6px"><label class="toggle"><input type="checkbox" id="mo-snap" checked><span class="toggle-slider"></span></label><span class="toggle-desc" style="font-size:0.72rem">Snap</span></div>
+              <span style="font-size:0.68rem;color:var(--text-muted)">Drag • Arrow ±1px • Shift ±10px • Ctrl+Click select</span>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary)" id="mo-pos-display">—</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button class="btn btn-secondary" onclick="mvOverlayReset()" style="margin-right:auto">Clear All</button>
+          <button class="btn btn-secondary" onclick="mvCloseOverlay()">Cancel</button>
+          <button class="btn btn-start" onclick="mvApplyOverlay()">Apply</button>
+        </div>
+      </div>
+    </div>
+
+<script>
+let selectedSource = null;
+let discoveredSources = [];
+let hdmiOutputs = [];
+
+const $ = id => document.getElementById(id);
+
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  return (await fetch('/api'+path, opts)).json();
+}
+
+function setStatus(prefix, state) {
+  $(prefix+'-status').textContent = state.toUpperCase();
+  $(prefix+'-status').className = 'status-badge ' + state;
+  $(prefix+'-dot').className = 'dot' + (state==='running'?' running':state==='error'?' error':'');
+}
+
+// ─── Sender ──────────────────────────────────────────────────────────────
+async function senderSourceChange() {
+  const v = $('s-source').value;
+  const showDev = v === 'webcam' || v === 'csi_hdmi';
+  $('s-device-field').style.display = showDev ? '' : 'none';
+  if (showDev) await senderRefreshCameras();
+}
+
+async function senderRefreshCameras() {
+  const data = await api('/cameras');
+  const sel = $('s-device');
+  sel.innerHTML = '';
+  (data.cameras || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.device;
+    opt.textContent = `${c.name} (${c.device})`;
+    sel.appendChild(opt);
+  });
+}
+
+async function senderStart() {
+  $('sender-error').style.display='none'; $('sender-start').disabled=true;
+  const d = await api('/sender/start','POST',{ source_type:$('s-source').value, device:$('s-device').value, ndi_name:$('s-name').value||undefined, width:+$('s-width').value, height:+$('s-height').value, fps:+$('s-fps').value });
+  if(d.error){$('sender-error').textContent=d.error;$('sender-error').style.display='';$('sender-start').disabled=false;}
+  refreshStatus();
+}
+async function senderStop() { $('sender-stop').disabled=true; await api('/sender/stop','POST'); refreshStatus(); }
+
+// ─── Discovery ───────────────────────────────────────────────────────────
+async function discoverSources() {
+  $('discover-btn').disabled=true; $('discover-hint').innerHTML='<span class="spinner"></span> Scanning…';
+  const data = await api('/sources');
+  $('discover-btn').disabled=false;
+  discoveredSources = data.sources||[];
+  const list=$('source-list'); list.innerHTML=''; selectedSource=null; $('receiver-start').disabled=true;
+  if(!discoveredSources.length) {
+    $('discover-hint').textContent='No sources found';
+    list.innerHTML='<li style="color:var(--text-muted);font-size:0.8rem;padding:8px 0">No NDI sources detected</li>';
+  } else {
+    $('discover-hint').textContent=discoveredSources.length+' source(s) found';
+    discoveredSources.forEach(src=>{
+      const li=document.createElement('li'); li.className='source-item';
+      li.innerHTML=`<span class="radio"></span><span>${src.name}</span>`;
+      li.addEventListener('click',()=>{
+        document.querySelectorAll('.source-item').forEach(e=>e.classList.remove('selected'));
+        li.classList.add('selected'); selectedSource=src.name; $('receiver-start').disabled=false;
+      });
+      list.appendChild(li);
+    });
+  }
+  // Update all HDMI source dropdowns
+  document.querySelectorAll('.hdmi-source').forEach(sel=>{
+    const cur=sel.value; sel.innerHTML='<option value="">— Select NDI source —</option>';
+    discoveredSources.forEach(s=>{ const o=document.createElement('option'); o.value=s.name; o.textContent=s.name; if(s.name===cur) o.selected=true; sel.appendChild(o); });
+  });
+  // After populating source dropdowns, sync saved autostart config into dropdowns
+  syncAutostartToDropdowns();
+  // Refresh multiview palette
+  mvRenderPalette();
+}
+
+async function syncAutostartToDropdowns() {
+  try {
+    const data = await api('/status');
+    const autoList = data.autostart || [];
+    autoList.forEach(a => {
+      if (!a.enabled || !a.source_name) return;
+      const idx = a.hdmi_index;
+      const sel = $('h'+idx+'-source');
+      if (sel.querySelector('option[value="'+a.source_name+'"]')) sel.value = a.source_name;
+      // Restore stream resolution toggle state
+      const streamResToggle = $('h'+idx+'-streamres');
+      const rsel = $('h'+idx+'-resolution');
+      if (a.width && a.height) {
+        streamResToggle.checked = false;
+        rsel.disabled = false;
+        if (rsel.querySelector('option[value="'+a.width+'x'+a.height+'"]')) rsel.value = a.width+'x'+a.height;
+      } else {
+        streamResToggle.checked = true;
+        rsel.disabled = true;
+      }
+    });
+  } catch(e) {}
+}
+
+// ─── Receiver ────────────────────────────────────────────────────────────
+async function receiverStart() {
+  if(!selectedSource) return; $('receiver-error').style.display='none'; $('receiver-start').disabled=true;
+  const d = await api('/receiver/start','POST',{source_name:selectedSource});
+  if(d.error){$('receiver-error').textContent=d.error;$('receiver-error').style.display='';$('receiver-start').disabled=false;}
+  refreshStatus();
+}
+async function receiverStop() { $('receiver-stop').disabled=true; await api('/receiver/stop','POST'); $('preview-wrap').style.display='none'; refreshStatus(); }
+
+// ─── PTZ Control ─────────────────────────────────────────────────────────
+let _ptzStoreMode = false;
+let _ptzMoveInterval = null;
+let _ptzZoomInterval = null;
+
+function ptzModeChange() {
+  const mode = $('ptz-mode').value;
+  $('ptz-usb-opts').style.display = mode === 'usb' ? '' : 'none';
+  $('ptz-ndi-opts').style.display = mode === 'ndi' ? '' : 'none';
+  if (mode === 'usb') ptzRefreshUsbDevices();
+  if (mode === 'ndi') ptzRefreshNdiSources();
+}
+
+async function ptzRefreshNdiSources() {
+  const d = await api('/sources');
+  const sel = $('ptz-ndi-source');
+  sel.innerHTML = '';
+  (d.sources || d || []).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.name || s; o.textContent = s.name || s;
+    sel.appendChild(o);
+  });
+}
+
+async function ptzRefreshUsbDevices() {
+  const d = await api('/ptz/status');
+  const sel = $('ptz-usb-device');
+  sel.innerHTML = '';
+  (d.usb_cameras || []).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.device; o.textContent = c.name + ' (' + c.device + ')';
+    sel.appendChild(o);
+  });
+  if (!sel.options.length) { const o = document.createElement('option'); o.textContent = 'No PTZ cameras'; sel.appendChild(o); }
+}
+
+async function ptzNdiConnect() {
+  const src = $('ptz-ndi-source').value;
+  if (!src) return;
+  $('ptz-ndi-status').textContent = 'Connecting…';
+  const d = await api('/ptz/ndi/connect', 'POST', { source_name: src });
+  if (d.error) { $('ptz-ndi-status').textContent = 'Error: ' + d.error; }
+  else { $('ptz-ndi-status').textContent = 'Connected to ' + src.split('(').pop().replace(')',''); }
+}
+
+async function ptzNdiDisconnect() {
+  await api('/ptz/ndi/disconnect', 'POST');
+  $('ptz-ndi-status').textContent = 'Disconnected';
+}
+
+function ptzMove(panDir, tiltDir) {
+  const mode = $('ptz-mode').value;
+  if (mode === 'usb') {
+    const dev = $('ptz-usb-device').value;
+    const step = 5000;  // Increment per tick
+    if (_ptzMoveInterval) clearInterval(_ptzMoveInterval);
+    const doMove = async () => {
+      const pos = await api('/ptz/usb/get', 'POST', { device: dev });
+      if (pos && pos.pan !== undefined) {
+        const newPan = pos.pan + panDir * step;
+        const newTilt = pos.tilt + tiltDir * step;
+        api('/ptz/usb/move', 'POST', { device: dev, pan: newPan, tilt: newTilt });
+      }
+    };
+    doMove();
+    _ptzMoveInterval = setInterval(doMove, 250);
+  } else {
+    const speed = 0.5;
+    api('/ptz/ndi/move', 'POST', { mode: 'speed', pan_speed: panDir * speed, tilt_speed: tiltDir * speed });
+  }
+}
+
+function ptzStop() {
+  if (_ptzMoveInterval) { clearInterval(_ptzMoveInterval); _ptzMoveInterval = null; }
+  const mode = $('ptz-mode').value;
+  if (mode === 'ndi') {
+    api('/ptz/ndi/move', 'POST', { mode: 'speed', pan_speed: 0, tilt_speed: 0 });
+  }
+}
+
+function ptzHome() {
+  const mode = $('ptz-mode').value;
+  if (mode === 'usb') {
+    api('/ptz/usb/home', 'POST', { device: $('ptz-usb-device').value });
+    $('ptz-zoom').value = 0;
+  } else {
+    api('/ptz/ndi/move', 'POST', { mode: 'absolute', pan: 0, tilt: 0 });
+    api('/ptz/ndi/zoom', 'POST', { zoom: 0 });
+    $('ptz-zoom').value = 0;
+  }
+}
+
+function ptzZoomSet(val) {
+  const mode = $('ptz-mode').value;
+  const norm = val / 100;  // 0-1
+  if (mode === 'usb') {
+    const dev = $('ptz-usb-device').value;
+    api('/ptz/usb/zoom', 'POST', { device: dev, zoom: Math.round(norm * 16384) });
+  } else {
+    api('/ptz/ndi/zoom', 'POST', { zoom: norm });
+  }
+}
+
+function ptzZoomDir(dir) {
+  if (_ptzZoomInterval) clearInterval(_ptzZoomInterval);
+  _ptzZoomInterval = setInterval(() => {
+    const sl = $('ptz-zoom');
+    sl.value = Math.max(0, Math.min(100, +sl.value + dir * 5));
+    ptzZoomSet(sl.value);
+  }, 150);
+  // First step immediately
+  const sl = $('ptz-zoom');
+  sl.value = Math.max(0, Math.min(100, +sl.value + dir * 5));
+  ptzZoomSet(sl.value);
+}
+
+function ptzZoomStop() {
+  if (_ptzZoomInterval) { clearInterval(_ptzZoomInterval); _ptzZoomInterval = null; }
+}
+
+let _ptzFocusInterval = null;
+
+function ptzFocusSet(val) {
+  const mode = $('ptz-mode').value;
+  const norm = val / 100;
+  if (mode === 'usb') {
+    const dev = $('ptz-usb-device').value;
+    api('/ptz/usb/focus', 'POST', { device: dev, focus: Math.round(norm * 255) });
+  } else {
+    api('/ptz/ndi/focus', 'POST', { focus: norm });
+  }
+}
+
+function ptzFocusDir(dir) {
+  if (_ptzFocusInterval) clearInterval(_ptzFocusInterval);
+  _ptzFocusInterval = setInterval(() => {
+    const sl = $('ptz-focus');
+    sl.value = Math.max(0, Math.min(100, +sl.value + dir * 3));
+    ptzFocusSet(sl.value);
+  }, 150);
+  const sl = $('ptz-focus');
+  sl.value = Math.max(0, Math.min(100, +sl.value + dir * 3));
+  ptzFocusSet(sl.value);
+}
+
+function ptzFocusStop() {
+  if (_ptzFocusInterval) { clearInterval(_ptzFocusInterval); _ptzFocusInterval = null; }
+}
+
+function ptzAutoFocus() {
+  const mode = $('ptz-mode').value;
+  if (mode === 'usb') {
+    api('/ptz/usb/focus', 'POST', { device: $('ptz-usb-device').value, auto: true });
+  } else {
+    api('/ptz/ndi/focus', 'POST', { auto: true });
+  }
+}
+
+function ptzPresetRecall(n) {
+  if (_ptzStoreMode) {
+    _ptzStoreMode = false;
+    $('ptz-store-row').style.display = 'none';
+    $('ptz-store-btn').textContent = 'Store Preset…';
+    const mode = $('ptz-mode').value;
+    if (mode === 'ndi') {
+      api('/ptz/ndi/preset/store', 'POST', { preset: n });
+    } else {
+      api('/ptz/usb/preset/store', 'POST', { device: $('ptz-usb-device').value, preset: n });
+    }
+    return;
+  }
+  const mode = $('ptz-mode').value;
+  if (mode === 'ndi') {
+    api('/ptz/ndi/preset/recall', 'POST', { preset: n, speed: 1.0 });
+  } else {
+    api('/ptz/usb/preset/recall', 'POST', { device: $('ptz-usb-device').value, preset: n });
+  }
+}
+
+function ptzStoreToggle() {
+  _ptzStoreMode = !_ptzStoreMode;
+  $('ptz-store-row').style.display = _ptzStoreMode ? '' : 'none';
+  $('ptz-store-btn').textContent = _ptzStoreMode ? 'Cancel Store' : 'Store Preset…';
+}
+
+// Init PTZ on page load
+setTimeout(() => { ptzRefreshUsbDevices(); }, 2000);
+
+// ─── HDMI Outputs ────────────────────────────────────────────────────────
+const FALLBACK_RESOLUTIONS = [
+  {width:3840,height:2160,label:'3840x2160 (4K)'},
+  {width:2560,height:1440,label:'2560x1440 (1440p)'},
+  {width:1920,height:1200,label:'1920x1200 (WUXGA)'},
+  {width:1920,height:1080,label:'1920x1080 (1080p)'},
+  {width:1680,height:1050,label:'1680x1050 (WSXGA+)'},
+  {width:1440,height:900, label:'1440x900 (WXGA+)'},
+  {width:1280,height:1024,label:'1280x1024 (SXGA)'},
+  {width:1280,height:720, label:'1280x720 (720p)'},
+  {width:1024,height:768, label:'1024x768 (XGA)'},
+  {width:720, height:576, label:'720x576 (PAL)'},
+  {width:720, height:480, label:'720x480 (NTSC)'},
+];
+
+function populateResDropdown(sel, modes, currentW, currentH) {
+  sel.innerHTML = '';
+  const list = (modes && modes.length > 1) ? modes : FALLBACK_RESOLUTIONS;
+  list.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.width + 'x' + m.height;
+    o.textContent = m.label || (m.width + 'x' + m.height);
+    sel.appendChild(o);
+  });
+  // Default to 1080p if available
+  const pref = sel.querySelector('option[value="1920x1080"]');
+  if (pref) sel.value = '1920x1080';
+}
+
+async function loadHdmiOutputs() {
+  try {
+    const data = await api('/hdmi/outputs');
+    hdmiOutputs = data.outputs || [];
+    [0, 1].forEach(idx => {
+      const sel = $('h' + idx + '-resolution');
+      const output = hdmiOutputs.find(o => o.index === idx);
+      if (output) {
+        populateResDropdown(sel, output.modes, output.width, output.height);
+      } else {
+        populateResDropdown(sel, FALLBACK_RESOLUTIONS, 0, 0);
+      }
+    });
+  } catch (e) {
+    console.warn('HDMI detect failed:', e);
+    // Still populate with fallback
+    [0, 1].forEach(idx => {
+      populateResDropdown($('h' + idx + '-resolution'), FALLBACK_RESOLUTIONS, 0, 0);
+    });
+  }
+}
+
+function parseRes(v) { const p=(v||'0x0').split('x'); return {w:+p[0]||0,h:+p[1]||0}; }
+
+function streamResToggle(idx) {
+  const useStream = $('h'+idx+'-streamres').checked;
+  $('h'+idx+'-resolution').disabled = useStream;
+  autostartSync(idx);
+}
+
+// Get resolution: returns {w:0,h:0} when "use stream res" is on, or dropdown value
+function getRes(idx) {
+  if ($('h'+idx+'-streamres').checked) return {w:0, h:0};
+  return parseRes($('h'+idx+'-resolution').value);
+}
+
+async function hdmiStart(idx) {
+  $('hdmi'+idx+'-error').style.display='none';
+  const sn=$('h'+idx+'-source').value;
+  if(!sn){$('hdmi'+idx+'-error').textContent='Select an NDI source first';$('hdmi'+idx+'-error').style.display='';return;}
+  $('hdmi'+idx+'-start').disabled=true;
+  const res=getRes(idx);
+  const mode=$('h'+idx+'-mode').value;
+  const d = await api('/hdmi/start','POST',{source_name:sn,hdmi_index:idx,width:res.w,height:res.h,mode:mode});
+  if(d.error){$('hdmi'+idx+'-error').textContent=d.error;$('hdmi'+idx+'-error').style.display='';}
+  $('hdmi'+idx+'-start').disabled=false;
+  refreshStatus();
+}
+
+async function hdmiStop(idx) {
+  $('hdmi'+idx+'-stop').disabled=true;
+  await api('/hdmi/stop','POST',{hdmi_index:idx});
+  refreshStatus();
+}
+
+// ─── Autostart ───────────────────────────────────────────────────────────
+let _autostartBusy = {};
+let _savedAutostart = {};
+
+function autostartToggle(idx) {
+  const on=$('auto'+idx+'-enabled').checked;
+  _autostartBusy[idx] = true;
+  if(on) {
+    let sn=$('h'+idx+'-source').value;
+    // Fallback: if dropdown is empty but we have a saved config, use that
+    if(!sn && _savedAutostart[idx]) sn = _savedAutostart[idx].source_name;
+    if(!sn){$('hdmi'+idx+'-error').textContent='Select an NDI source first to enable autostart';$('hdmi'+idx+'-error').style.display='';$('auto'+idx+'-enabled').checked=false;_autostartBusy[idx]=false;return;}
+    const res=getRes(idx);
+    const mode=$('h'+idx+'-mode').value;
+    api('/autostart/enable','POST',{source_name:sn,hdmi_index:idx,width:res.w,height:res.h,mode:mode}).then(d=>{
+      if(d.error){$('hdmi'+idx+'-error').textContent=d.error;$('hdmi'+idx+'-error').style.display='';$('auto'+idx+'-enabled').checked=false;}
+      _autostartBusy[idx]=false;
+      refreshStatus();
+    }).catch(()=>{_autostartBusy[idx]=false;});
+  } else {
+    api('/autostart/disable','POST',{hdmi_index:idx}).then(d=>{
+      if(d.error){$('hdmi'+idx+'-error').textContent=d.error;$('hdmi'+idx+'-error').style.display='';}
+      _autostartBusy[idx]=false;
+      refreshStatus();
+    }).catch(()=>{_autostartBusy[idx]=false;});
+  }
+}
+
+function autostartSync(idx) {
+  if (!$('auto'+idx+'-enabled').checked) return;
+  const sn=$('h'+idx+'-source').value;
+  if (!sn) return;
+  const res=getRes(idx);
+  const mode=$('h'+idx+'-mode').value;
+  _autostartBusy[idx] = true;
+  api('/autostart/enable','POST',{source_name:sn,hdmi_index:idx,width:res.w,height:res.h,mode:mode}).then(d=>{
+    _autostartBusy[idx]=false;
+    if(d.error){$('hdmi'+idx+'-error').textContent=d.error;$('hdmi'+idx+'-error').style.display='';}
+    else {
+      let desc = 'Autostart updated: "'+sn+'"';
+      if (res.w > 0 && res.h > 0) desc += ' @ '+res.w+'x'+res.h+' (HDMI output set to '+res.w+'x'+res.h+' on next boot)';
+      else desc += ' (stream resolution, no scaling)';
+      $('auto'+idx+'-desc').textContent = desc;
+    }
+  }).catch(()=>{_autostartBusy[idx]=false;});
+}
+
+// ─── Multiview ───────────────────────────────────────────────────────────
+
+// Data model: array of rows, each row has array of tiles with flex widths
+let mvRows = [
+  {tiles: [{source:'', tally:'none', flex:1, label:{}, overlays:[]}, {source:'', tally:'none', flex:1, label:{}, overlays:[]}]},
+  {tiles: [{source:'', tally:'none', flex:1, label:{}, overlays:[]}, {source:'', tally:'none', flex:1, label:{}, overlays:[]}]},
+];
+let mvHistory = [], mvFuture = [];
+
+function mvPushState() {
+  mvHistory.push(JSON.stringify(mvRows));
+  if (mvHistory.length > 50) mvHistory.shift();
+  mvFuture = [];
+  $('mv-undo').disabled = !mvHistory.length;
+  $('mv-redo').disabled = true;
+}
+function mvUndo() {
+  if (!mvHistory.length) return;
+  mvFuture.push(JSON.stringify(mvRows));
+  mvRows = JSON.parse(mvHistory.pop());
+  mvRenderAll();
+}
+function mvRedo() {
+  if (!mvFuture.length) return;
+  mvHistory.push(JSON.stringify(mvRows));
+  mvRows = JSON.parse(mvFuture.pop());
+  mvRenderAll();
+}
+
+function mvAddRow(delta) {
+  const nr = mvRows.length + delta;
+  if (nr < 1 || nr > 3) return;
+  mvPushState();
+  if (delta > 0) mvRows.push({tiles: [{source:'', tally:'none', flex:1, label:{}, overlays:[]}]});
+  else mvRows.pop();
+  mvRenderAll();
+}
+
+function mvAddTile(rowIdx, delta) {
+  const row = mvRows[rowIdx];
+  const nt = row.tiles.length + delta;
+  if (nt < 1 || nt > 3) return;
+  mvPushState();
+  if (delta > 0) row.tiles.push({source:'', tally:'none', flex:1, label:{}, overlays:[]});
+  else row.tiles.pop();
+  mvRenderAll();
+}
+
+function mvRenderAll() {
+  $('mv-row-count').textContent = mvRows.length;
+  $('mv-undo').disabled = !mvHistory.length;
+  $('mv-redo').disabled = !mvFuture.length;
+  mvRenderPalette();
+  mvRenderGrid();
+  mvLoadImages();
+  _mvCheckDirty();
+}
+
+function mvRenderPalette() {
+  const pal = $('mv-source-palette');
+  pal.innerHTML = '';
+  if (!discoveredSources.length) {
+    pal.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem">Click Scan Network first</span>';
+    return;
+  }
+  discoveredSources.forEach(s => {
+    const pill = document.createElement('div');
+    pill.draggable = true;
+    pill.dataset.source = s.name;
+    pill.style.cssText = 'padding:5px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:6px;font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary);cursor:grab;white-space:nowrap;user-select:none';
+    pill.textContent = s.name;
+    pill.addEventListener('dragstart', e => {
+      e.stopPropagation();
+      e.dataTransfer.setData('text/plain', s.name);
+      e.dataTransfer.setData('mv-type', 'palette');
+      pill.style.opacity = '0.5';
+    });
+    pill.addEventListener('dragend', () => pill.style.opacity = '1');
+    pal.appendChild(pill);
+  });
+}
+
+function mvRenderGrid() {
+  const grid = $('mv-grid');
+  grid.innerHTML = '';
+
+  mvRows.forEach((row, ri) => {
+    // Row container
+    const rowEl = document.createElement('div');
+    rowEl.style.cssText = 'display:flex;align-items:stretch;gap:0;margin-bottom:4px;position:relative;flex:1;overflow:hidden;min-height:0';
+
+    // Row controls (left side)
+    const ctrl = document.createElement('div');
+    ctrl.style.cssText = 'display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 4px;flex-shrink:0';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+';
+    addBtn.title = 'Add tile to row';
+    addBtn.style.cssText = 'font-size:0.65rem;padding:0 4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);border-radius:3px;cursor:pointer;line-height:1.4';
+    addBtn.onclick = () => mvAddTile(ri, 1);
+    const remBtn = document.createElement('button');
+    remBtn.textContent = '−';
+    remBtn.title = 'Remove tile from row';
+    remBtn.style.cssText = 'font-size:0.65rem;padding:0 4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);border-radius:3px;cursor:pointer;line-height:1.4';
+    remBtn.onclick = () => mvAddTile(ri, -1);
+    ctrl.appendChild(addBtn);
+    ctrl.appendChild(remBtn);
+    rowEl.appendChild(ctrl);
+
+    // Tiles in this row
+    const tilesWrap = document.createElement('div');
+    tilesWrap.style.cssText = 'display:flex;flex:1;gap:0;min-height:0;height:100%;overflow:hidden';
+
+    row.tiles.forEach((tile, ti) => {
+      // Tile cell
+      const cell = document.createElement('div');
+      const tallyColor = tile.tally === 'program' ? 'var(--accent-red)' : tile.tally === 'preview' ? 'var(--accent-green)' : 'var(--border)';
+      cell.style.cssText = `flex:${tile.flex};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--bg-card);border:2px solid ${tallyColor};border-radius:4px;margin:0 2px;padding:10px 6px;cursor:default;position:relative;overflow:hidden;min-width:0;transition:border-color 0.15s`;
+      cell.draggable = !!tile.source;
+      if (tile.source) cell.style.cursor = 'grab';
+
+      if (tile.source) {
+        if (tile.source.startsWith('image://')) {
+          const imgFile = tile.source.replace('image://', '');
+          const thumb = document.createElement('img');
+          thumb.src = '/static/images/' + imgFile;
+          thumb.style.cssText = 'max-width:90%;max-height:50%;object-fit:contain;border-radius:4px;pointer-events:none';
+          cell.appendChild(thumb);
+          const imgLabel = document.createElement('span');
+          imgLabel.style.cssText = 'font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%';
+          imgLabel.textContent = imgFile;
+          cell.appendChild(imgLabel);
+        } else {
+          const name = document.createElement('span');
+          name.style.cssText = 'font-family:var(--font-mono);font-size:0.85rem;color:var(--text-primary);text-align:center;word-break:break-all;line-height:1.2;max-width:100%;overflow:hidden';
+          name.textContent = tile.source;
+          cell.appendChild(name);
+        }
+
+        const acts = document.createElement('div');
+        acts.style.cssText = 'display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;justify-content:center';
+        const tallyStyles = {none:'background:transparent;color:var(--text-muted);border-color:var(--border)',program:'background:rgba(239,68,68,0.15);color:var(--accent-red);border-color:rgba(239,68,68,0.4)',preview:'background:rgba(16,185,129,0.15);color:var(--accent-green);border-color:rgba(16,185,129,0.4)'};
+        const tBtn = document.createElement('button');
+        tBtn.style.cssText = 'font-size:1.1rem;padding:4px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-family:var(--font-mono);font-weight:600;' + (tallyStyles[tile.tally]||tallyStyles.none);
+        tBtn.textContent = (tile.tally||'none').toUpperCase();
+        tBtn.title = 'Tally: click to cycle NONE → PGM → PVW';
+        tBtn.onclick = e => { e.stopPropagation(); mvPushState(); tile.tally = ({none:'program',program:'preview',preview:'none'})[tile.tally||'none']; mvRenderGrid(); };
+        acts.appendChild(tBtn);
+        const xBtn = document.createElement('button');
+        xBtn.style.cssText = 'font-size:1.1rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border);cursor:pointer;color:var(--text-muted);background:transparent';
+        xBtn.textContent = '✕';
+        xBtn.title = 'Remove source from tile';
+        xBtn.onclick = e => { e.stopPropagation(); mvPushState(); tile.source=''; tile.tally='none'; tile.label={}; tile.overlays=[]; mvRenderGrid(); };
+        acts.appendChild(xBtn);
+        const cfgBtn = document.createElement('button');
+        cfgBtn.style.cssText = 'font-size:1.1rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border);cursor:pointer;color:var(--accent-blue);background:transparent';
+        cfgBtn.textContent = '⚙';
+        cfgBtn.title = 'Label settings';
+        cfgBtn.onclick = e => { e.stopPropagation(); mvOpenLabel(ri, ti); };
+        acts.appendChild(cfgBtn);
+        const ovBtn = document.createElement('button');
+        ovBtn.style.cssText = 'font-size:1.1rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:transparent;display:flex;align-items:center';
+        ovBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#3b82f6"/><circle cx="8.5" cy="8.5" r="1.5" fill="#22c55e" stroke="none"/><path d="M21 15l-5-5L5 21" stroke="#22c55e" stroke-width="2"/></svg>';
+        ovBtn.title = 'Overlay image settings';
+        ovBtn.onclick = e => { e.stopPropagation(); mvOpenOverlay(ri, ti); };
+        acts.appendChild(ovBtn);
+        cell.appendChild(acts);
+      } else {
+        const ph = document.createElement('span');
+        ph.style.cssText = 'font-size:0.85rem;color:var(--text-muted)';
+        ph.textContent = 'Drop here';
+        cell.appendChild(ph);
+      }
+
+      // Flex label
+      const flexLabel = document.createElement('span');
+      flexLabel.style.cssText = 'position:absolute;top:4px;right:6px;font-size:0.7rem;color:var(--text-muted);font-family:var(--font-mono)';
+      const indicators = [];
+      if (tile.flex > 1) indicators.push(tile.flex + '×');
+      if (tile.label && (tile.label.text || tile.label.position === 'top' || tile.label.show_tally || tile.label.bg_color)) indicators.push('🏷');
+      if (tile.overlays && tile.overlays.length) indicators.push('\u25A3' + (tile.overlays.length>1?tile.overlays.length:''));
+      flexLabel.textContent = indicators.join(' ');
+      cell.appendChild(flexLabel);
+
+      // Drag from cell
+      cell.addEventListener('dragstart', e => {
+        if (!tile.source) { e.preventDefault(); return; }
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', tile.source);
+        e.dataTransfer.setData('mv-type', 'grid');
+        e.dataTransfer.setData('mv-ri', String(ri));
+        e.dataTransfer.setData('mv-ti', String(ti));
+        cell.style.opacity = '0.4';
+      });
+      cell.addEventListener('dragend', () => cell.style.opacity = '1');
+
+      // Drop onto cell
+      cell.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); cell.style.borderColor='var(--accent-blue)'; });
+      cell.addEventListener('dragleave', () => cell.style.borderColor = tallyColor);
+      cell.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        cell.style.borderColor = tallyColor;
+        // Check for dropped files (image upload)
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const file = e.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            mvUploadAndAssign(file, ri, ti);
+            return;
+          }
+        }
+        const srcName = e.dataTransfer.getData('text/plain');
+        const srcType = e.dataTransfer.getData('mv-type');
+        if (!srcName || !srcType) return;  // Ignore section reorder drags and other non-tile drops
+        mvPushState();
+        if (srcType === 'grid') {
+          const sri = +e.dataTransfer.getData('mv-ri');
+          const sti = +e.dataTransfer.getData('mv-ti');
+          const other = mvRows[sri].tiles[sti];
+          const tmp = {source:tile.source, tally:tile.tally, label:tile.label, overlays:tile.overlays};
+          tile.source = other.source; tile.tally = other.tally; tile.label = other.label; tile.overlays = other.overlays;
+          other.source = tmp.source; other.tally = tmp.tally; other.label = tmp.label; other.overlays = tmp.overlays;
+        } else {
+          tile.source = srcName;
+        }
+        mvRenderGrid();
+      });
+
+      tilesWrap.appendChild(cell);
+
+      // Drag handle between tiles (not after last)
+      if (ti < row.tiles.length - 1) {
+        const handle = document.createElement('div');
+        handle.style.cssText = 'width:8px;cursor:col-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none';
+        handle.innerHTML = '<div style="width:2px;height:30px;background:var(--border);border-radius:1px"></div>';
+        handle.addEventListener('mousedown', e => {
+          e.preventDefault();
+          const startX = e.clientX;
+          const leftTile = row.tiles[ti];
+          const rightTile = row.tiles[ti + 1];
+          const totalFlex = leftTile.flex + rightTile.flex;
+          const startLeftFlex = leftTile.flex;
+
+          const onMove = me => {
+            const dx = me.clientX - startX;
+            const wrapW = tilesWrap.getBoundingClientRect().width;
+            const flexPerPx = totalFlex / wrapW;
+            const newLeft = Math.max(0.5, Math.min(totalFlex - 0.5, startLeftFlex + dx * flexPerPx));
+            leftTile.flex = Math.round(newLeft * 4) / 4;
+            rightTile.flex = Math.round((totalFlex - leftTile.flex) * 4) / 4;
+            if (leftTile.flex < 0.5) leftTile.flex = 0.5;
+            if (rightTile.flex < 0.5) rightTile.flex = 0.5;
+            mvRenderGrid();
+          };
+          const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            mvPushState();
+          };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
+        tilesWrap.appendChild(handle);
+      }
+    });
+
+    rowEl.appendChild(tilesWrap);
+    grid.appendChild(rowEl);
+  });
+  _mvCheckDirty();
+}
+
+// ── Config ──
+
+function mvGetConfig() {
+  const sources = [];
+  const tally = {};
+  let idx = 0;
+  mvRows.forEach(row => {
+    row.tiles.forEach(t => {
+      if (t.source) sources.push(t.source);
+      else sources.push('');
+      if (t.tally && t.tally !== 'none') tally[idx] = t.tally;
+      idx++;
+    });
+  });
+  return {
+    sources: sources.filter(s => s),
+    layout: mvRows.map(r => r.tiles.length).join('+'),
+    tally: tally,
+    labels: $('mv-labels').checked,
+    mode: $('mv-mode').value,
+    output_res: $('mv-output-res').value,
+    layout_data: { rows: mvRows.map(r => ({tiles: r.tiles.map(t => ({source:t.source,tally:t.tally,flex:t.flex,label:t.label||{},overlays:t.overlays||[]}))})) },
+  };
+}
+
+function mvGetFullLayout() {
+  return { rows: mvRows.map(r => ({tiles: r.tiles.map(t => ({source:t.source||'',tally:t.tally||'none',flex:t.flex||1,label:t.label||{},overlays:t.overlays||[]}))})), labels: $('mv-labels').checked, output_res: $('mv-output-res').value, mode: $('mv-mode').value };
+}
+
+function mvLoadLayout(layout) {
+  mvPushState();
+  mvRows = (layout.rows || []).map(r => ({tiles: (r.tiles||[]).map(t => ({source:t.source||'', tally:t.tally||'none', flex:t.flex||1, label:t.label||{}, overlays:t.overlays||[]}))}));
+  if (!mvRows.length) mvRows = [{tiles:[{source:'',tally:'none',flex:1}]}];
+  if (layout.labels !== undefined) $('mv-labels').checked = layout.labels;
+  if (layout.output_res) $('mv-output-res').value = layout.output_res;
+  if (layout.mode) $('mv-mode').value = layout.mode;
+  mvRenderAll();
+}
+
+async function mvSaveLayout() {
+  const cfg = mvGetConfig();
+  try {
+    const resp = await fetch('/api/multiview/autostart/enable', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)});
+    if (!resp.ok) {
+      const text = await resp.text();
+      $('mv-error').textContent = 'Save failed (HTTP ' + resp.status + '): ' + text.slice(0, 200);
+      $('mv-error').style.display='';
+      return;
+    }
+    const d = await resp.json();
+    if (d.error) {
+      $('mv-error').textContent = 'Save failed: ' + d.error;
+      $('mv-error').style.display='';
+      return;
+    }
+    $('mv-error').style.display='none';
+    const srcCount = mvRows.reduce((s,r) => s + r.tiles.filter(t=>t.source).length, 0);
+    const rowDescs = mvRows.map(r => r.tiles.length);
+    $('mv-auto-desc').textContent = 'Layout saved! ' + srcCount + ' source(s), ' + mvRows.length + ' row(s) [' + rowDescs.join('+') + ' tiles]';
+  } catch(e) {
+    $('mv-error').textContent = 'Save failed: ' + e.message; $('mv-error').style.display='';
+  }
+}
+
+function mvExportLayout() {
+  const layout = mvGetFullLayout();
+  const blob = new Blob([JSON.stringify(layout, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'multiview-layout.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function mvImportLayout(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const layout = JSON.parse(e.target.result);
+      if (!layout.rows) throw new Error('Invalid layout');
+      mvLoadLayout(layout);
+    } catch(err) {
+      $('mv-error').textContent = 'Import failed: ' + err.message; $('mv-error').style.display='';
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── Start / Stop / Autostart ──
+
+let _mvIsRunning = false;
+let _mvStartedHash = '';
+
+function _mvConfigHash() {
+  return JSON.stringify(mvRows.map(r=>r.tiles.map(t=>({s:t.source,t:t.tally,f:t.flex,o:t.overlays}))));
+}
+
+function _mvCheckDirty() {
+  const btn = $('mv-start');
+  if (_mvIsRunning && _mvStartedHash && _mvConfigHash() !== _mvStartedHash) {
+    btn.textContent = '↻ Restart Multiview';
+    btn.disabled = false;
+    btn.classList.remove('btn-start');
+    btn.classList.add('btn-start');
+    btn.style.background = 'var(--accent-blue)';
+  } else if (_mvIsRunning) {
+    btn.textContent = '▶ Start Multiview';
+    btn.disabled = true;
+    btn.style.background = '';
+  } else {
+    btn.textContent = '▶ Start Multiview';
+    btn.disabled = false;
+    btn.style.background = '';
+  }
+}
+
+async function mvStart() {
+  $('mv-error').style.display = 'none';
+  const cfg = mvGetConfig();
+  if (!cfg.sources.length && (!cfg.layout_data || !cfg.layout_data.rows)) {
+    $('mv-error').textContent = 'Drag at least one source onto the grid';
+    $('mv-error').style.display = '';
+    return;
+  }
+  $('mv-start').disabled = true;
+  $('mv-start').textContent = _mvIsRunning ? '↻ Restarting...' : '▶ Starting...';
+
+  // Stop first if already running
+  if (_mvIsRunning) {
+    try { await fetch('/api/multiview/stop', {method:'POST'}); } catch(e) {}
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  try {
+    const resp = await fetch('/api/multiview/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)});
+    const d = resp.ok ? await resp.json() : {error: 'HTTP ' + resp.status};
+    if (d.error) { $('mv-error').textContent = d.error; $('mv-error').style.display = ''; }
+    else { _mvStartedHash = _mvConfigHash(); }
+  } catch(e) { $('mv-error').textContent = e.message; $('mv-error').style.display = ''; }
+  $('mv-start').disabled = false;
+  $('mv-start').textContent = '▶ Start Multiview';
+  $('mv-start').style.background = '';
+  refreshStatus();
+}
+
+async function mvStop() {
+  $('mv-stop').disabled = true;
+  try { await fetch('/api/multiview/stop', {method:'POST'}); } catch(e) {}
+  _mvIsRunning = false;
+  _mvStartedHash = '';
+  _mvCheckDirty();
+  refreshStatus();
+}
+
+let _mvAutostartBusy = false;
+let _mvLayoutLoaded = false;
+
+async function mvAutostartToggle() {
+  const on = $('mv-auto-enabled').checked;
+  _mvAutostartBusy = true;
+  if (on) {
+    const cfg = mvGetConfig();
+    const hasSources = cfg.sources.length > 0 || (cfg.layout_data && cfg.layout_data.rows && cfg.layout_data.rows.some(r => r.tiles.some(t => t.source)));
+    if (!hasSources) {
+      $('mv-error').textContent = 'Drag at least one source to enable autostart';
+      $('mv-error').style.display = '';
+      $('mv-auto-enabled').checked = false;
+      _mvAutostartBusy = false;
+      return;
+    }
+    try {
+      const resp = await fetch('/api/multiview/autostart/enable', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)});
+      const d = resp.ok ? await resp.json() : {error: 'HTTP ' + resp.status};
+      if (d.error) { $('mv-error').textContent = d.error; $('mv-error').style.display=''; $('mv-auto-enabled').checked = false; }
+    } catch(e) { $('mv-error').textContent = e.message; $('mv-error').style.display=''; $('mv-auto-enabled').checked = false; }
+    _mvAutostartBusy = false;
+    refreshStatus();
+  } else {
+    try { await fetch('/api/multiview/autostart/disable', {method:'POST'}); } catch(e) {}
+    _mvAutostartBusy = false;
+    refreshStatus();
+  }
+}
+
+
+// ── Label settings modal ──
+let _labelTarget = null; // {ri, ti}
+
+function mvOpenLabel(ri, ti) {
+  _labelTarget = {ri, ti};
+  const tile = mvRows[ri].tiles[ti];
+  const lbl = tile.label || {};
+  $('ml-text').value = lbl.text || '';
+  $('ml-position').value = lbl.position === 'none' ? 'bottom' : (lbl.position || 'bottom');
+  $('ml-hidden').checked = lbl.position === 'none';
+  $('ml-halign').value = lbl.h_align || 'center';
+  $('ml-color').value = lbl.color || '#ffffff';
+  $('ml-bg').value = lbl.bg_color || '#000000';
+  $('ml-use-bg').checked = !!lbl.bg_color;
+  $('ml-tally').checked = !!lbl.show_tally;
+  const scale = lbl.font_scale || 0.5;
+  $('ml-scale').value = Math.round(scale * 10);
+  $('ml-scale-val').textContent = scale.toFixed(1);
+  $('mv-label-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function mvCloseLabel() {
+  $('mv-label-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _labelTarget = null;
+}
+
+function mvApplyLabel() {
+  if (!_labelTarget) return;
+  const {ri, ti} = _labelTarget;
+  mvPushState();
+  const tile = mvRows[ri].tiles[ti];
+  tile.label = {
+    text: $('ml-text').value,
+    position: $('ml-hidden').checked ? 'none' : $('ml-position').value,
+    h_align: $('ml-halign').value,
+    show_tally: $('ml-tally').checked,
+    color: $('ml-color').value,
+    bg_color: $('ml-use-bg').checked ? $('ml-bg').value : '',
+    font_scale: +$('ml-scale').value / 10,
+  };
+  mvCloseLabel();
+  mvRenderGrid();
+}
+
+$('ml-scale').addEventListener('input', () => {
+  $('ml-scale-val').textContent = (+$('ml-scale').value / 10).toFixed(1);
+});
+
+
+// ── Image library ──
+
+async function mvLoadImages() {
+  try {
+    const resp = await fetch('/api/images/list');
+    if (!resp.ok) return;
+    const d = await resp.json();
+    const pal = $('mv-image-palette');
+    pal.innerHTML = '';
+    if (!d.images || !d.images.length) {
+      pal.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem">No images uploaded</span>';
+      return;
+    }
+    d.images.forEach(fn => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:6px;cursor:grab;user-select:none';
+      wrap.draggable = true;
+
+      const thumb = document.createElement('img');
+      thumb.src = '/static/images/' + fn;
+      thumb.style.cssText = 'width:28px;height:28px;object-fit:cover;border-radius:3px';
+
+      const name = document.createElement('span');
+      name.style.cssText = 'font-family:var(--font-mono);font-size:0.68rem;color:var(--text-primary);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      name.textContent = fn;
+
+      const delBtn = document.createElement('button');
+      delBtn.style.cssText = 'font-size:0.6rem;padding:0 4px;border:none;background:transparent;color:var(--text-muted);cursor:pointer';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Delete image';
+      delBtn.onclick = async e => {
+        e.stopPropagation();
+        if (!confirm('Delete ' + fn + '?')) return;
+        await fetch('/api/images/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:fn})});
+        mvLoadImages();
+      };
+
+      wrap.addEventListener('dragstart', e => {
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', 'image://' + fn);
+        e.dataTransfer.setData('mv-type', 'palette');
+        wrap.style.opacity = '0.5';
+      });
+      wrap.addEventListener('dragend', () => wrap.style.opacity = '1');
+
+      wrap.appendChild(thumb);
+      wrap.appendChild(name);
+      wrap.appendChild(delBtn);
+      pal.appendChild(wrap);
+    });
+  } catch(e) {
+    console.error('Image list error:', e);
+  }
+}
+
+async function mvUploadImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const resp = await fetch('/api/images/upload', {method:'POST', body: form});
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert('Upload failed (HTTP ' + resp.status + '): ' + text.slice(0, 200));
+      return;
+    }
+    const d = await resp.json();
+    if (d.error) { alert('Upload failed: ' + d.error); return; }
+    mvLoadImages();
+  } catch(e) {
+    alert('Upload error: ' + e.message);
+  }
+  event.target.value = '';
+}
+
+async function mvUploadAndAssign(file, ri, ti) {
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const resp = await fetch('/api/images/upload', {method:'POST', body: form});
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert('Upload failed (HTTP ' + resp.status + '): ' + text.slice(0, 200));
+      return;
+    }
+    const d = await resp.json();
+    if (d.error) { alert('Upload failed: ' + d.error); return; }
+    mvPushState();
+    mvRows[ri].tiles[ti].source = d.path;
+    mvRenderGrid();
+    mvLoadImages();
+  } catch(e) {
+    alert('Upload error: ' + e.message);
+  }
+}
+
+
+// ── Overlay editor (multi-layer) ──
+let _overlayTarget = null;
+let _ovLayers = [];
+let _ovSelected = -1;
+let _ovHistory = [], _ovFuture = [];
+
+function _ovPush() { _ovHistory.push(JSON.stringify(_ovLayers)); if (_ovHistory.length>40) _ovHistory.shift(); _ovFuture=[]; _ovUpdateUndoBtn(); }
+function _ovUndo() { if(!_ovHistory.length)return; _ovFuture.push(JSON.stringify(_ovLayers)); _ovLayers=JSON.parse(_ovHistory.pop()); if(_ovSelected>=_ovLayers.length) _ovSelected=_ovLayers.length-1; _ovRenderAll(); }
+function _ovRedo() { if(!_ovFuture.length)return; _ovHistory.push(JSON.stringify(_ovLayers)); _ovLayers=JSON.parse(_ovFuture.pop()); if(_ovSelected>=_ovLayers.length) _ovSelected=_ovLayers.length-1; _ovRenderAll(); }
+function _ovUpdateUndoBtn() { $('mo-undo').disabled=!_ovHistory.length; $('mo-redo').disabled=!_ovFuture.length; }
+
+function _ovGetS() { const p=$('mo-preview'), ts=_ovGetTileSize(); return Math.min(p.clientWidth/ts.tw, p.clientHeight/ts.th); }
+function _ovGetTileSize() {
+  if(!_overlayTarget) return {tw:1920,th:1080};
+  const {ri,ti}=_overlayTarget;
+  const res=$('mv-output-res').value||'1920x1080', m=res.match(/(\d+)x(\d+)/);
+  const sW=m?+m[1]:1920, sH=m?+m[2]:1080, nR=mvRows.length, rH=Math.floor(sH/nR);
+  const row=mvRows[ri], tF=row.tiles.reduce((s,t)=>s+(t.flex||1),0);
+  const tW=Math.floor(sW*(row.tiles[ti].flex||1)/tF);
+  return {tw:Math.max(1,tW-4), th:Math.max(1,rH-4)};
+}
+
+function mvOpenOverlay(ri, ti) {
+  _overlayTarget={ri,ti};
+  const tile=mvRows[ri].tiles[ti];
+  if(tile.overlay&&tile.overlay.image&&(!tile.overlays||!tile.overlays.length)) { tile.overlays=[tile.overlay]; delete tile.overlay; }
+  _ovLayers=JSON.parse(JSON.stringify(tile.overlays||[]));
+  _ovSelected=_ovLayers.length>0?0:-1;
+  _ovHistory=[]; _ovFuture=[]; _ovUpdateUndoBtn();
+  _ovPopulateImagePicker();
+  $('mv-overlay-modal').style.display='flex';
+  document.body.style.overflow='hidden';
+  _ovRenderAll();
+  setTimeout(()=>$('mo-preview').focus(),100);
+}
+function mvCloseOverlay() { $('mv-overlay-modal').style.display='none'; document.body.style.overflow=''; _overlayTarget=null; }
+function mvApplyOverlay() {
+  if(!_overlayTarget)return;
+  const {ri,ti}=_overlayTarget;
+  mvPushState();
+  mvRows[ri].tiles[ti].overlays=_ovLayers.filter(l=>l.image);
+  mvCloseOverlay(); mvRenderGrid();
+}
+function mvOverlayReset() { _ovPush(); _ovLayers=[]; _ovSelected=-1; _ovRenderAll(); }
+
+function _ovAddLayer() {
+  const sel=$('mo-add-image');
+  const fn=sel.value;
+  if(!fn)return;
+  _ovPush();
+  _ovLayers.push({image:fn,x:0,y:0,scale:1.0});
+  _ovSelected=_ovLayers.length-1;
+  sel.value='';
+  _ovRenderAll();
+}
+
+function _ovPopulateImagePicker() {
+  const sel=$('mo-add-image');
+  sel.innerHTML='<option value="">Select image to add...</option>';
+  fetch('/api/images/list').then(r=>r.json()).then(d=>{
+    (d.images||[]).forEach(fn=>{
+      const o=document.createElement('option');
+      o.value=fn;o.textContent=fn;
+      sel.appendChild(o);
+    });
+  });
+}
+
+async function _ovUploadAndAdd(file) {
+  const form=new FormData(); form.append('file',file);
+  try {
+    const resp=await fetch('/api/images/upload',{method:'POST',body:form});
+    if(!resp.ok)return;
+    const d=await resp.json();
+    if(d.error||!d.filename)return;
+    _ovPush();
+    _ovLayers.push({image:d.filename,x:0,y:0,scale:1.0});
+    _ovSelected=_ovLayers.length-1;
+    _ovRenderAll(); mvLoadImages(); _ovPopulateImagePicker();
+  }catch(e){}
+}
+
+function _ovDeleteSelected() {
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  _ovPush(); _ovLayers.splice(_ovSelected,1);
+  if(_ovSelected>=_ovLayers.length)_ovSelected=_ovLayers.length-1;
+  _ovRenderAll();
+}
+
+function _ovRenderAll() {
+  _ovUpdateUndoBtn(); _ovRenderLayerList(); _ovRenderPreview(); _ovUpdateCoords();
+  const dz=$('mo-drop-zone'),dt=$('mo-drop-text');
+  if(_ovLayers.length===0){dz.style.display='flex';dt.style.display='';}
+  else{dz.style.display='none';dt.style.display='none';}
+}
+
+function _ovRenderLayerList() {
+  const list=$('mo-layer-list'); list.innerHTML='';
+  if(!_ovLayers.length){list.innerHTML='<span style="color:var(--text-muted);font-size:0.68rem">No layers</span>';$('mo-scale').value='1.0';return;}
+  _ovLayers.forEach((layer,idx)=>{
+    const row=document.createElement('div');
+    const isSel=idx===_ovSelected;
+    row.draggable=true;
+    row.dataset.layerIdx=idx;
+    row.style.cssText=`display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:4px;cursor:grab;font-size:0.68rem;font-family:var(--font-mono);border:1px solid ${isSel?'var(--accent-blue)':'transparent'};background:${isSel?'rgba(59,130,246,0.15)':'transparent'};transition:opacity 0.1s`;
+    row.onclick=()=>{_ovSelected=idx;_ovRenderAll();};
+
+    const grip=document.createElement('span');
+    grip.style.cssText='cursor:grab;color:var(--text-muted);font-size:0.7rem;flex-shrink:0;user-select:none';
+    grip.textContent='\u2807';
+    grip.title='Drag to reorder';
+
+    const thumb=document.createElement('img');
+    thumb.src='/static/images/'+layer.image;
+    thumb.style.cssText='width:20px;height:20px;object-fit:cover;border-radius:2px;flex-shrink:0;pointer-events:none';
+    const name=document.createElement('span');
+    name.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);pointer-events:none';
+    name.textContent=layer.image;
+    const del=document.createElement('button');
+    del.style.cssText='border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:0.6rem;padding:0 2px;flex-shrink:0';
+    del.textContent='\u2715'; del.title='Remove layer';
+    del.onclick=e=>{e.stopPropagation();_ovSelected=idx;_ovDeleteSelected();};
+
+    row.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('layer-idx',String(idx));
+      e.dataTransfer.effectAllowed='move';
+      row.style.opacity='0.4';
+      _ovDragIdx=idx;
+    });
+    row.addEventListener('dragend',()=>{row.style.opacity='1';_ovDragIdx=-1;});
+    row.addEventListener('dragover',e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+      row.style.borderTop=_ovDragIdx<idx?'':'2px solid var(--accent-blue)';
+      row.style.borderBottom=_ovDragIdx>=idx?'':'2px solid var(--accent-blue)';
+    });
+    row.addEventListener('dragleave',()=>{
+      row.style.borderTop='';row.style.borderBottom='';
+      row.style.borderColor=isSel?'var(--accent-blue)':'transparent';
+    });
+    row.addEventListener('drop',e=>{
+      e.preventDefault();
+      row.style.borderTop='';row.style.borderBottom='';
+      const fromIdx=parseInt(e.dataTransfer.getData('layer-idx'));
+      if(isNaN(fromIdx)||fromIdx===idx)return;
+      _ovPush();
+      const moved=_ovLayers.splice(fromIdx,1)[0];
+      _ovLayers.splice(idx,0,moved);
+      if(_ovSelected===fromIdx)_ovSelected=idx;
+      else if(fromIdx<_ovSelected&&idx>=_ovSelected)_ovSelected--;
+      else if(fromIdx>_ovSelected&&idx<=_ovSelected)_ovSelected++;
+      _ovRenderAll();
+    });
+
+    row.appendChild(grip);row.appendChild(thumb);row.appendChild(name);row.appendChild(del);
+    list.appendChild(row);
+  });
+  if(_ovSelected>=0&&_ovSelected<_ovLayers.length) $('mo-scale').value=_ovLayers[_ovSelected].scale||1.0;
+}
+let _ovDragIdx=-1;
+
+function _ovRenderPreview() {
+  const container=$('mo-overlay-layers'); container.innerHTML='';
+  const handles=$('mo-handles'); const s=_ovGetS();
+  _ovLayers.forEach((layer,idx)=>{
+    const img=document.createElement('img');
+    img.src='/static/images/'+layer.image;
+    img.style.cssText='position:absolute;pointer-events:none;image-rendering:auto';
+    img.dataset.idx=idx;
+    img.onload=()=>{
+      const sc=layer.scale||1,dw=img.naturalWidth*sc*s,dh=img.naturalHeight*sc*s;
+      img.style.width=dw+'px'; img.style.height=dh+'px';
+      img.style.left=(layer.x*s)+'px'; img.style.top=(layer.y*s)+'px';
+      img.style.opacity=idx===_ovSelected?'1':'0.6';
+      img.style.outline=idx===_ovSelected?'1px solid rgba(59,130,246,0.5)':'none';
+      if(idx===_ovSelected){handles.style.display='block';handles.style.width=dw+'px';handles.style.height=dh+'px';handles.style.left=(layer.x*s)+'px';handles.style.top=(layer.y*s)+'px';}
+    };
+    if(img.complete&&img.naturalWidth)img.onload();
+    container.appendChild(img);
+  });
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length) handles.style.display='none';
+}
+
+function _ovSnap(x,y) {
+  const layer=_ovLayers[_ovSelected]; if(!layer)return{x,y};
+  const ts=_ovGetTileSize(),tw=ts.tw,th=ts.th;
+  const imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  const iw=Math.round((imgEl?.naturalWidth||100)*(layer.scale||1));
+  const ih=Math.round((imgEl?.naturalHeight||100)*(layer.scale||1));
+  const T=15; let sx=x,sy=y;
+  if(Math.abs(x)<T)sx=0; if(Math.abs((x+iw)-tw)<T)sx=tw-iw;
+  if(Math.abs(y)<T)sy=0; if(Math.abs((y+ih)-th)<T)sy=th-ih;
+  if(Math.abs((x+iw/2)-tw/2)<T)sx=Math.round((tw-iw)/2);
+  if(Math.abs((y+ih/2)-th/2)<T)sy=Math.round((th-ih)/2);
+  return{x:sx,y:sy};
+}
+function _ovDescribeSnap(x,y) {
+  const layer=_ovLayers[_ovSelected]; if(!layer)return'';
+  const ts=_ovGetTileSize(),imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  const iw=Math.round((imgEl?.naturalWidth||100)*(layer.scale||1)),ih=Math.round((imgEl?.naturalHeight||100)*(layer.scale||1));
+  const tw=ts.tw,th=ts.th,parts=[];
+  if(x===0)parts.push('left'); else if(x===tw-iw)parts.push('right'); else if(x===Math.round((tw-iw)/2))parts.push('center-h');
+  if(y===0)parts.push('top'); else if(y===th-ih)parts.push('bottom'); else if(y===Math.round((th-ih)/2))parts.push('center-v');
+  return parts.length?'  \u2022 '+parts.join('+'):'';
+}
+function _ovUpdateCoords() {
+  const layer=_ovLayers[_ovSelected];
+  if(!layer){$('mo-coords').textContent=_ovLayers.length?'Select a layer':'Drop image here';$('mo-pos-display').textContent='\u2014';return;}
+  const ts=_ovGetTileSize(),snap=$('mo-snap').checked?_ovDescribeSnap(layer.x,layer.y):'';
+  $('mo-coords').textContent=`X: ${layer.x}  Y: ${layer.y}  Layer ${_ovSelected+1}/${_ovLayers.length}${snap}`;
+  $('mo-pos-display').textContent=`X: ${layer.x}  Y: ${layer.y}  tile: ${ts.tw}\u00d7${ts.th}${snap}`;
+}
+
+$('mo-scale').addEventListener('input',()=>{if(_ovSelected>=0&&_ovSelected<_ovLayers.length){_ovLayers[_ovSelected].scale=parseFloat($('mo-scale').value)||1;_ovRenderPreview();_ovUpdateCoords();}});
+$('mo-scale').addEventListener('change',()=>_ovPush());
+
+function _ovScaleFitWidth() {
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  const layer=_ovLayers[_ovSelected];
+  const imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  if(!imgEl||!imgEl.naturalWidth)return;
+  const ts=_ovGetTileSize();
+  _ovPush();
+  layer.scale=Math.round((ts.tw/imgEl.naturalWidth)*100)/100;
+  layer.x=0;
+  layer.y=Math.round((ts.th-imgEl.naturalHeight*layer.scale)/2);
+  $('mo-scale').value=layer.scale;
+  _ovRenderPreview();_ovUpdateCoords();
+}
+
+function _ovScaleFitHeight() {
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  const layer=_ovLayers[_ovSelected];
+  const imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  if(!imgEl||!imgEl.naturalHeight)return;
+  const ts=_ovGetTileSize();
+  _ovPush();
+  layer.scale=Math.round((ts.th/imgEl.naturalHeight)*100)/100;
+  layer.x=Math.round((ts.tw-imgEl.naturalWidth*layer.scale)/2);
+  layer.y=0;
+  $('mo-scale').value=layer.scale;
+  _ovRenderPreview();_ovUpdateCoords();
+}
+
+function _ovScaleFit() {
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  const layer=_ovLayers[_ovSelected];
+  const imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  if(!imgEl||!imgEl.naturalWidth||!imgEl.naturalHeight)return;
+  const ts=_ovGetTileSize();
+  _ovPush();
+  layer.scale=Math.round(Math.min(ts.tw/imgEl.naturalWidth,ts.th/imgEl.naturalHeight)*100)/100;
+  layer.x=Math.round((ts.tw-imgEl.naturalWidth*layer.scale)/2);
+  layer.y=Math.round((ts.th-imgEl.naturalHeight*layer.scale)/2);
+  $('mo-scale').value=layer.scale;
+  _ovRenderPreview();_ovUpdateCoords();
+}
+$('mo-add-image').addEventListener('change',()=>_ovAddLayer());
+$('mv-overlay-modal').addEventListener('wheel',e=>e.preventDefault(),{passive:false});
+
+function _ovDropZoneClick(){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.onchange=()=>{if(inp.files[0])_ovUploadAndAdd(inp.files[0]);};inp.click();}
+
+$('mo-preview').addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
+$('mo-preview').addEventListener('drop',e=>{
+  e.preventDefault();
+  if(e.dataTransfer.files&&e.dataTransfer.files.length>0){const file=e.dataTransfer.files[0];if(file.type.startsWith('image/')){_ovUploadAndAdd(file);return;}}
+  const src=e.dataTransfer.getData('text/plain');
+  if(src&&src.startsWith('image://')){const fn=src.replace('image://','');_ovPush();_ovLayers.push({image:fn,x:0,y:0,scale:1.0});_ovSelected=_ovLayers.length-1;_ovRenderAll();}
+});
+
+// Ctrl+Click select layer
+$('mo-preview').addEventListener('mousedown',e=>{
+  if(!e.ctrlKey&&!e.metaKey)return;
+  const s=_ovGetS(),rect=$('mo-preview').getBoundingClientRect(),mx=(e.clientX-rect.left)/s,my=(e.clientY-rect.top)/s;
+  for(let i=_ovLayers.length-1;i>=0;i--){
+    const layer=_ovLayers[i],imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${i}"]`);
+    if(!imgEl)continue;
+    const iw=(imgEl.naturalWidth||0)*(layer.scale||1),ih=(imgEl.naturalHeight||0)*(layer.scale||1);
+    if(mx>=layer.x&&mx<=layer.x+iw&&my>=layer.y&&my<=layer.y+ih){e.preventDefault();_ovSelected=i;_ovRenderAll();return;}
+  }
+});
+
+// Handle move/resize
+$('mo-handles').addEventListener('mousedown',e=>{
+  const handle=e.target.dataset.handle; if(!handle||_ovSelected<0)return;
+  e.preventDefault();e.stopPropagation();
+  const s=_ovGetS(),startMX=e.clientX,startMY=e.clientY,layer=_ovLayers[_ovSelected];
+  const startX=layer.x,startY=layer.y,startScale=layer.scale||1;
+  const imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  const natW=imgEl?.naturalWidth||100,natH=imgEl?.naturalHeight||100;
+  if(handle==='move'){
+    const onMove=me=>{layer.x=Math.round(startX+(me.clientX-startMX)/s);layer.y=Math.round(startY+(me.clientY-startMY)/s);if($('mo-snap').checked){const sn=_ovSnap(layer.x,layer.y);layer.x=sn.x;layer.y=sn.y;}_ovRenderPreview();_ovUpdateCoords();};
+    const onUp=()=>{_ovPush();document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+    document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+  }else{
+    const origW=natW*startScale,origH=natH*startScale;
+    const onMove=me=>{
+      const dx=(me.clientX-startMX)/s,dy=(me.clientY-startMY)/s;
+      let nW=origW,nH=origH;
+      if(handle==='br'){nW=origW+dx;nH=origH+dy;}else if(handle==='bl'){nW=origW-dx;nH=origH+dy;}else if(handle==='tr'){nW=origW+dx;nH=origH-dy;}else{nW=origW-dx;nH=origH-dy;}
+      let ns=Math.max(0.05,Math.round(((nW/natW+nH/natH)/2)*20)/20);
+      const fW=natW*ns,fH=natH*ns;
+      if(handle==='tl'){layer.x=Math.round(startX+(origW-fW));layer.y=Math.round(startY+(origH-fH));}
+      else if(handle==='tr'){layer.y=Math.round(startY+(origH-fH));layer.x=startX;}
+      else if(handle==='bl'){layer.x=Math.round(startX+(origW-fW));layer.y=startY;}
+      else{layer.x=startX;layer.y=startY;}
+      layer.scale=ns;$('mo-scale').value=ns.toFixed(2);_ovRenderPreview();_ovUpdateCoords();
+    };
+    const onUp=()=>{_ovPush();document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+    document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+  }
+});
+
+// Click on empty canvas: place selected
+$('mo-preview').addEventListener('mousedown',e=>{
+  if(e.ctrlKey||e.metaKey)return;
+  if(e.target!==$('mo-preview')&&e.target!==$('mo-drop-zone')&&e.target!==$('mo-drop-text'))return;
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  const layer=_ovLayers[_ovSelected],imgEl=$('mo-overlay-layers').querySelector(`img[data-idx="${_ovSelected}"]`);
+  if(!imgEl)return; e.preventDefault();
+  const rect=$('mo-preview').getBoundingClientRect(),s=_ovGetS();
+  const iw=(imgEl.naturalWidth||100)*(layer.scale||1),ih=(imgEl.naturalHeight||100)*(layer.scale||1);
+  layer.x=Math.round((e.clientX-rect.left)/s-iw/2);layer.y=Math.round((e.clientY-rect.top)/s-ih/2);
+  if($('mo-snap').checked){const sn=_ovSnap(layer.x,layer.y);layer.x=sn.x;layer.y=sn.y;}
+  _ovPush();_ovRenderPreview();_ovUpdateCoords();
+});
+
+// Keyboard
+$('mo-preview').addEventListener('keydown',e=>{
+  if(_ovSelected<0||_ovSelected>=_ovLayers.length)return;
+  const step=e.shiftKey?10:1,layer=_ovLayers[_ovSelected];
+  if(e.key==='ArrowLeft'){layer.x-=step;e.preventDefault();}
+  else if(e.key==='ArrowRight'){layer.x+=step;e.preventDefault();}
+  else if(e.key==='ArrowUp'){layer.y-=step;e.preventDefault();}
+  else if(e.key==='ArrowDown'){layer.y+=step;e.preventDefault();}
+  else if(e.key==='Delete'||e.key==='Backspace'){_ovDeleteSelected();return;}
+  else if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.shiftKey?_ovRedo():_ovUndo();e.preventDefault();return;}
+  else return;
+  layer.x=Math.round(layer.x);layer.y=Math.round(layer.y);
+  _ovRenderPreview();_ovUpdateCoords();
+});
+$('mo-preview').addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))_ovPush();});
+
+
+// ── Viewport: drag, collapse, persist ──
+
+const VP_DEFAULT_ORDER = ['sender','ptz','receiver','hdmi0','hdmi1','multiview','videowall','diagnostics','system','preview'];
+let _vpSavedState = null;
+
+function vpGetState() {
+  const grid = $('viewport-grid');
+  const order = [...grid.querySelectorAll('.section-wrap')].map(w => w.dataset.section);
+  const collapsed = {};
+  document.querySelectorAll('.card-collapse').forEach(el => {
+    if (el.classList.contains('collapsed')) collapsed[el.dataset.collapse] = true;
+  });
+  const mvWide = document.querySelector('.section-wrap[data-section="multiview"]')?.classList.contains('span-2');
+  const wallWide = document.querySelector('.section-wrap[data-section="videowall"]')?.classList.contains('span-2');
+  const cols = grid.classList.contains('cols-1') ? 1 : 2;
+  return { order, collapsed, mvWide: mvWide !== false, wallWide: wallWide !== false, cols };
+}
+
+function vpApplyState(state) {
+  if (!state) return;
+  const grid = $('viewport-grid');
+  
+  // Reorder
+  if (state.order && state.order.length) {
+    const wraps = {};
+    grid.querySelectorAll('.section-wrap').forEach(w => { wraps[w.dataset.section] = w; });
+    state.order.forEach(id => {
+      if (wraps[id]) grid.appendChild(wraps[id]);
+    });
+    // Append any not in order list
+    Object.keys(wraps).forEach(id => {
+      if (!state.order.includes(id)) grid.appendChild(wraps[id]);
+    });
+  }
+  
+  // Collapse
+  if (state.collapsed) {
+    document.querySelectorAll('.card-collapse').forEach(el => {
+      const id = el.dataset.collapse;
+      const chev = el.closest('.card')?.querySelector('.chevron');
+      if (state.collapsed[id]) {
+        el.classList.add('collapsed');
+        if (chev) chev.classList.add('collapsed');
+      } else {
+        el.classList.remove('collapsed');
+        if (chev) chev.classList.remove('collapsed');
+      }
+    });
+  }
+  
+  // Multiview width
+  const mvWrap = document.querySelector('.section-wrap[data-section="multiview"]');
+  if (mvWrap) {
+    if (state.mvWide === false) {
+      mvWrap.classList.remove('span-2');
+      if ($('mv-w1')) $('mv-w1').classList.add('active');
+      if ($('mv-w2')) $('mv-w2').classList.remove('active');
+    } else {
+      mvWrap.classList.add('span-2');
+      if ($('mv-w1')) $('mv-w1').classList.remove('active');
+      if ($('mv-w2')) $('mv-w2').classList.add('active');
+    }
+  }
+  
+  // Video Wall width
+  const wallWrap = document.querySelector('.section-wrap[data-section="videowall"]');
+  if (wallWrap) {
+    if (state.wallWide === false) {
+      wallWrap.classList.remove('span-2');
+      if ($('wall-w1')) $('wall-w1').classList.add('active');
+      if ($('wall-w2')) $('wall-w2').classList.remove('active');
+    } else {
+      wallWrap.classList.add('span-2');
+      if ($('wall-w1')) $('wall-w1').classList.remove('active');
+      if ($('wall-w2')) $('wall-w2').classList.add('active');
+    }
+  }
+
+  // Column count
+  if (state.cols === 1) {
+    grid.classList.add('cols-1');
+  } else {
+    grid.classList.remove('cols-1');
+  }
+  _vpUpdateColButtons();
+  
+  _vpCheckDirty();
+}
+
+function _vpCheckDirty() {
+  const btn = $('vp-load-saved');
+  if (!btn) return;
+  if (_vpSavedState && JSON.stringify(vpGetState()) !== JSON.stringify(_vpSavedState)) {
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+async function vpSave() {
+  const state = vpGetState();
+  _vpSavedState = JSON.parse(JSON.stringify(state));
+  try { await fetch('/api/viewport', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state)}); } catch(e) {}
+  _vpCheckDirty();
+}
+
+async function vpLoad() {
+  try {
+    const resp = await fetch('/api/viewport');
+    const state = await resp.json();
+    if (state && state.order && state.order.length) {
+      _vpSavedState = JSON.parse(JSON.stringify(state));
+      vpApplyState(state);
+    }
+  } catch(e) {}
+}
+
+function vpLoadSaved() {
+  if (_vpSavedState) vpApplyState(_vpSavedState);
+}
+
+function vpReset() {
+  vpApplyState({ order: VP_DEFAULT_ORDER, collapsed: {}, mvWide: true, wallWide: true, cols: 2 });
+}
+
+function vpSetCols(n) {
+  const grid = $('viewport-grid');
+  if (n === 1) {
+    grid.classList.add('cols-1');
+  } else {
+    grid.classList.remove('cols-1');
+  }
+  _vpUpdateColButtons();
+  _vpCheckDirty();
+}
+
+function _vpUpdateColButtons() {
+  const is1 = $('viewport-grid').classList.contains('cols-1');
+  if ($('vp-col1')) $('vp-col1').style.opacity = is1 ? '1' : '0.5';
+  if ($('vp-col2')) $('vp-col2').style.opacity = is1 ? '0.5' : '1';
+}
+
+function mvSetWidth(cols) {
+  const mvWrap = document.querySelector('.section-wrap[data-section="multiview"]');
+  if (!mvWrap) return;
+  if (cols === 2) {
+    mvWrap.classList.add('span-2');
+    $('mv-w1').classList.remove('active');
+    $('mv-w2').classList.add('active');
+  } else {
+    mvWrap.classList.remove('span-2');
+    $('mv-w1').classList.add('active');
+    $('mv-w2').classList.remove('active');
+  }
+  _vpCheckDirty();
+}
+
+function wallSetWidth(cols) {
+  const wrap = document.querySelector('.section-wrap[data-section="videowall"]');
+  if (!wrap) return;
+  if (cols === 2) {
+    wrap.classList.add('span-2');
+    $('wall-w1').classList.remove('active');
+    $('wall-w2').classList.add('active');
+  } else {
+    wrap.classList.remove('span-2');
+    $('wall-w1').classList.add('active');
+    $('wall-w2').classList.remove('active');
+  }
+  _vpCheckDirty();
+}
+
+// ── Collapse toggle ──
+document.addEventListener('click', e => {
+  const head = e.target.closest('.card-head');
+  if (!head) return;
+  // Don't collapse if clicking buttons/selects/toggles inside head
+  if (e.target.closest('button, select, input, .mv-width-toggle')) return;
+  
+  const card = head.closest('.card');
+  if (!card) return;
+  const collapse = card.querySelector('.card-collapse');
+  const chevron = head.querySelector('.chevron');
+  if (!collapse) return;
+  
+  collapse.classList.toggle('collapsed');
+  if (chevron) chevron.classList.toggle('collapsed');
+  _vpCheckDirty();
+});
+
+// ── Drag & drop reorder ──
+let _vpDragEl = null;
+
+document.querySelectorAll('.section-wrap').forEach(wrap => {
+  wrap.addEventListener('dragstart', e => {
+    // Only handle section reorder drags initiated from the grip handle
+    // Ignore bubbled drags from source pills, tiles, node chips, etc.
+    if (!e.target.closest('.drag-grip')) {
+      return;  // Let child handlers own this drag
+    }
+    _vpDragEl = wrap;
+    wrap.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', wrap.dataset.section);
+    e.dataTransfer.setData('vp-section', '1');  // Mark as section drag
+  });
+  
+  wrap.addEventListener('dragend', () => {
+    wrap.classList.remove('dragging');
+    document.querySelectorAll('.section-wrap.drag-over').forEach(el => el.classList.remove('drag-over'));
+    _vpDragEl = null;
+  });
+  
+  wrap.addEventListener('dragover', e => {
+    if (!_vpDragEl || _vpDragEl === wrap) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.section-wrap.drag-over').forEach(el => el.classList.remove('drag-over'));
+    wrap.classList.add('drag-over');
+  });
+  
+  wrap.addEventListener('dragleave', () => {
+    wrap.classList.remove('drag-over');
+  });
+  
+  wrap.addEventListener('drop', e => {
+    e.preventDefault();
+    wrap.classList.remove('drag-over');
+    if (!_vpDragEl || _vpDragEl === wrap) return;
+    
+    const grid = $('viewport-grid');
+    const allWraps = [...grid.querySelectorAll('.section-wrap')];
+    const fromIdx = allWraps.indexOf(_vpDragEl);
+    const toIdx = allWraps.indexOf(wrap);
+    
+    if (fromIdx < toIdx) {
+      wrap.after(_vpDragEl);
+    } else {
+      wrap.before(_vpDragEl);
+    }
+    _vpCheckDirty();
+  });
+});
+
+// Prevent drag from starting except from grip
+document.querySelectorAll('.section-wrap').forEach(wrap => {
+  wrap.addEventListener('mousedown', e => {
+    if (e.target.closest('.drag-grip')) {
+      wrap.draggable = true;
+    } else {
+      wrap.draggable = false;
+    }
+  });
+});
+
+// Load viewport on init
+vpLoad();
+
+// Register video wall section for drag
+document.querySelectorAll('.section-wrap').forEach(wrap => {
+  // Re-apply mousedown handler for new sections
+  if (!wrap._dragInit) {
+    wrap._dragInit = true;
+    wrap.addEventListener('mousedown', e => {
+      wrap.draggable = !!e.target.closest('.drag-grip');
+    });
+  }
+});
+
+
+// ── Video Wall ──
+let wallCols = 2, wallRows = 2;
+let wallNodeAssignments = {};  // "col,row" -> hostname
+let wallDiscoveredNodes = [];  // [{hostname, ip, port, online, running, ...}]
+let _wallRunning = false;
+let _wallStartedHash = '';
+let _wallDragging = false;  // True while drag in progress — prevents grid rebuild
+
+function _wallConfigHash() {
+  return JSON.stringify({s:$('wall-source')?.value, c:wallCols, r:wallRows, a:wallNodeAssignments,
+    res:$('wall-output-res')?.value==='custom'?$('wall-output-custom')?.value:$('wall-output-res')?.value, buf:$('wall-buffer')?.value, bz:$('wall-bezel')?.value, fps:$('wall-target-fps')?.value});
+}
+
+function _wallCheckDirty() {
+  const btn = $('wall-start');
+  if (!btn) return;
+  if (_wallRunning && _wallStartedHash && _wallConfigHash() !== _wallStartedHash) {
+    btn.textContent = '↻ Restart Wall';
+    btn.disabled = false;
+    btn.style.background = 'var(--accent-blue)';
+  } else if (_wallRunning) {
+    btn.textContent = '▶ Start Wall';
+    btn.disabled = true;
+    btn.style.background = '';
+  } else {
+    btn.textContent = '▶ Start Wall';
+    btn.disabled = false;
+    btn.style.background = '';
+  }
+}
+
+function wallResChange() {
+  const sel = $('wall-output-res');
+  const custom = $('wall-output-custom');
+  if (sel.value === 'custom') {
+    custom.style.display = '';
+    custom.focus();
+  } else {
+    custom.style.display = 'none';
+  }
+  _wallCheckDirty();
+}
+
+function wallGridResize(dim, delta) {
+  if (dim === 'cols') wallCols = Math.max(1, Math.min(6, wallCols + delta));
+  else wallRows = Math.max(1, Math.min(6, wallRows + delta));
+  $('wall-cols').textContent = wallCols;
+  $('wall-rows').textContent = wallRows;
+  wallRenderGrid();
+  _wallCheckDirty();
+}
+
+function wallRenderGrid() {
+  const grid = $('wall-grid');
+  grid.style.gridTemplateColumns = `repeat(${wallCols}, 1fr)`;
+  grid.style.gridTemplateRows = `repeat(${wallRows}, 1fr)`;
+  grid.innerHTML = '';
+
+  for (let row = 0; row < wallRows; row++) {
+    for (let col = 0; col < wallCols; col++) {
+      const cell = document.createElement('div');
+      const key = `${col},${row}`;
+      const assigned = wallNodeAssignments[key] || null;
+
+      cell.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;min-height:50px;cursor:default;transition:all 0.15s;position:relative';
+      cell.dataset.col = col;
+      cell.dataset.row = row;
+
+      if (assigned) {
+        const node = wallDiscoveredNodes.find(n => n.hostname === assigned);
+        const online = node ? node.online : false;
+        const running = node ? node.running : false;
+
+        cell.style.borderColor = running ? 'var(--accent-green)' : (online ? 'var(--accent-blue)' : 'var(--accent-red)');
+        cell.style.background = running ? 'rgba(16,185,129,0.08)' : (online ? 'rgba(59,130,246,0.06)' : 'rgba(239,68,68,0.06)');
+        cell.draggable = true;
+        cell.style.cursor = 'grab';
+
+        cell.innerHTML = `
+          <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap;pointer-events:none">${assigned}</span>
+          <span style="font-size:0.6rem;color:${running?'var(--accent-green)':(online?'var(--accent-blue)':'var(--accent-red)')};margin-top:2px;pointer-events:none">${running?'● running':(online?'● online':'○ offline')}</span>
+          <span style="font-size:0.55rem;color:var(--text-muted);margin-top:1px;pointer-events:none">[${col},${row}]</span>
+          <button onclick="event.stopPropagation();event.preventDefault();wallUnassign('${key}')" style="position:absolute;top:2px;right:4px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:var(--accent-red);cursor:pointer;font-size:1rem;padding:2px 7px;border-radius:4px;line-height:1" title="Unassign node">✕</button>`;
+
+        // Stats if running
+        if (running && node && node.stats) {
+          const s = node.stats;
+          const fps = s.display_fps || 0;
+          cell.innerHTML += `<span style="font-size:0.55rem;color:var(--accent-green);margin-top:2px;pointer-events:none">${fps} fps</span>`;
+        }
+
+        // Drag assigned node out of cell
+        cell.addEventListener('dragstart', e => {
+          e.stopPropagation();
+          _wallDragging = true;
+          e.dataTransfer.setData('wall-node', assigned);
+          e.dataTransfer.setData('wall-from-key', key);
+          e.dataTransfer.effectAllowed = 'move';
+          cell.style.opacity = '0.4';
+        });
+        cell.addEventListener('dragend', () => { cell.style.opacity = '1'; _wallDragging = false; });
+
+      } else {
+        cell.style.borderStyle = 'dashed';
+        cell.style.borderColor = 'var(--border)';
+        cell.innerHTML = `<span style="color:var(--text-muted);font-size:0.65rem">[${col},${row}]</span><span style="color:var(--text-muted);font-size:0.55rem">drop node</span>`;
+      }
+
+      // Drop target (accepts from node list AND from other cells)
+      cell.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); cell.style.borderColor = 'var(--accent-blue)'; cell.style.background = 'rgba(59,130,246,0.12)'; });
+      cell.addEventListener('dragleave', () => {
+        // Just reset styling — don't rebuild grid (that kills the drag)
+        if (assigned) {
+          const node = wallDiscoveredNodes.find(n => n.hostname === assigned);
+          const running = node ? node.running : false;
+          const online = node ? node.online : false;
+          cell.style.borderColor = running ? 'var(--accent-green)' : (online ? 'var(--accent-blue)' : 'var(--accent-red)');
+          cell.style.background = running ? 'rgba(16,185,129,0.08)' : (online ? 'rgba(59,130,246,0.06)' : 'rgba(239,68,68,0.06)');
+        } else {
+          cell.style.borderColor = 'var(--border)';
+          cell.style.background = 'var(--bg-card)';
+        }
+      });
+      cell.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const hostname = e.dataTransfer.getData('wall-node');
+        const fromKey = e.dataTransfer.getData('wall-from-key');
+        if (hostname) {
+          // If dropping onto a cell that already has a node, swap them
+          const existingInTarget = wallNodeAssignments[key];
+          // Remove dragged node from its old position
+          if (fromKey && wallNodeAssignments[fromKey] === hostname) {
+            if (existingInTarget) {
+              // Swap: put target's node into source's old cell
+              wallNodeAssignments[fromKey] = existingInTarget;
+            } else {
+              delete wallNodeAssignments[fromKey];
+            }
+          } else {
+            // Coming from node list — remove from any previous grid position
+            Object.keys(wallNodeAssignments).forEach(k => { if (wallNodeAssignments[k] === hostname) delete wallNodeAssignments[k]; });
+          }
+          wallNodeAssignments[key] = hostname;
+          wallRenderGrid();
+          wallRenderNodeList();
+          _wallCheckDirty();
+        }
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function wallUnassign(key) {
+  delete wallNodeAssignments[key];
+  wallRenderGrid();
+  wallRenderNodeList();
+  _wallCheckDirty();
+}
+
+function wallRenderNodeList() {
+  const list = $('wall-node-list');
+  if (wallDiscoveredNodes.length === 0) {
+    list.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem">Click Scan to find nodes</span>';
+    return;
+  }
+
+  list.innerHTML = '';
+  const assigned = new Set(Object.values(wallNodeAssignments));
+
+  wallDiscoveredNodes.forEach(node => {
+    const chip = document.createElement('div');
+    const isAssigned = assigned.has(node.hostname);
+    const isSelf = node.is_self || node.hostname === document.getElementById('hostname')?.textContent;
+
+    chip.draggable = true;
+    chip.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;font-family:var(--font-mono);font-size:0.72rem;cursor:grab;border:1px solid ${node.online?'var(--accent-blue)':'var(--border)'};background:${isAssigned?'rgba(59,130,246,0.1)':'var(--bg-card)'};opacity:${isAssigned?'0.5':'1'}`;
+
+    chip.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${node.online?'var(--accent-green)':'var(--text-muted)'}"></span>${node.hostname}${isSelf?' <span style="color:var(--accent-amber);font-size:0.55rem">CTL</span>':''}`;
+
+    chip.addEventListener('dragstart', e => {
+      e.stopPropagation();
+      _wallDragging = true;
+      e.dataTransfer.setData('wall-node', node.hostname);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    chip.addEventListener('dragend', () => { _wallDragging = false; });
+
+    list.appendChild(chip);
+  });
+}
+
+async function wallDiscover() {
+  $('wall-discover-btn').disabled = true;
+  $('wall-discover-btn').textContent = 'Scanning...';
+  try {
+    const resp = await fetch('/api/wall/discover', {method:'POST'});
+    const d = await resp.json();
+    if (d.nodes) {
+      // Merge into discovered list
+      d.nodes.forEach(n => {
+        const existing = wallDiscoveredNodes.find(x => x.hostname === n.hostname);
+        if (existing) { existing.ip = n.ip; existing.online = true; }
+        else wallDiscoveredNodes.push({...n, online: true, running: false, stats: {}, is_self: false});
+      });
+    }
+    // Also fetch full node list
+    const resp2 = await fetch('/api/wall/nodes');
+    const d2 = await resp2.json();
+    if (d2.nodes) {
+      d2.nodes.forEach(n => {
+        const existing = wallDiscoveredNodes.find(x => x.hostname === n.hostname);
+        if (existing) Object.assign(existing, n);
+        else wallDiscoveredNodes.push(n);
+      });
+    }
+    wallRenderNodeList();
+    wallRenderGrid();
+  } catch(e) { console.error('Wall discover error:', e); }
+  $('wall-discover-btn').disabled = false;
+  $('wall-discover-btn').textContent = 'Scan Network';
+}
+
+async function wallAddNode() {
+  const host = $('wall-add-host').value.trim();
+  if (!host) return;
+  try {
+    const resp = await fetch('/api/wall/node/add', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({hostname:host})});
+    const d = await resp.json();
+    if (d.error) { $('wall-error').textContent = d.error; $('wall-error').style.display=''; return; }
+    $('wall-error').style.display='none';
+    $('wall-add-host').value = '';
+    wallDiscoveredNodes.push({hostname:d.hostname, ip:d.ip, port:5000, online:d.online, running:false, stats:{}, is_self:false});
+    wallRenderNodeList();
+  } catch(e) {}
+}
+
+function wallGetConfig() {
+  const nodes = [];
+  Object.entries(wallNodeAssignments).forEach(([key, hostname]) => {
+    const [col, row] = key.split(',').map(Number);
+    const node = wallDiscoveredNodes.find(n => n.hostname === hostname);
+    nodes.push({
+      hostname, col, row,
+      ip: node ? node.ip : '', port: node ? (node.port || 5000) : 5000
+    });
+  });
+  return {
+    source: $('wall-source').value,
+    cols: wallCols, rows: wallRows,
+    output_res: $('wall-output-res').value === 'custom' ? $('wall-output-custom').value.trim() : $('wall-output-res').value,
+    buffer_frames: parseInt($('wall-buffer').value) || 3,
+    bezel_mm: parseFloat($('wall-bezel').value) || 0,
+    target_fps: parseInt($('wall-target-fps').value) || 30,
+    nodes
+  };
+}
+
+async function wallSaveConfig() {
+  const cfg = wallGetConfig();
+  try {
+    await fetch('/api/wall/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)});
+  } catch(e) {}
+}
+
+async function wallStart() {
+  $('wall-error').style.display='none';
+  const cfg = wallGetConfig();
+  if (!cfg.source) { $('wall-error').textContent='Select an NDI source'; $('wall-error').style.display=''; return; }
+  if (!cfg.nodes.length) { $('wall-error').textContent='Assign at least one node to the grid'; $('wall-error').style.display=''; return; }
+
+  $('wall-start').disabled = true;
+  $('wall-start').textContent = _wallRunning ? '↻ Restarting...' : '▶ Starting...';
+
+  // Stop first if already running
+  if (_wallRunning) {
+    try { await fetch('/api/wall/stop', {method:'POST'}); } catch(e) {}
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  try {
+    await fetch('/api/wall/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)});
+    const resp = await fetch('/api/wall/start', {method:'POST'});
+    const d = await resp.json();
+    if (d.error) { $('wall-error').textContent = d.error; $('wall-error').style.display=''; }
+    else { _wallRunning = true; _wallStartedHash = _wallConfigHash(); }
+  } catch(e) { $('wall-error').textContent = e.message; $('wall-error').style.display=''; }
+  $('wall-start').disabled = false;
+  $('wall-start').textContent = '▶ Start Wall';
+  $('wall-start').style.background = '';
+  _wallCheckDirty();
+}
+
+async function wallStop() {
+  $('wall-stop').disabled = true;
+  try { await fetch('/api/wall/stop', {method:'POST'}); } catch(e) {}
+  _wallRunning = false;
+  _wallStartedHash = '';
+  $('wall-stop').disabled = false;
+  _wallCheckDirty();
+}
+
+// Load saved wall config on init
+async function wallLoadConfig() {
+  try {
+    const resp = await fetch('/api/wall/config');
+    const cfg = await resp.json();
+    if (cfg.cols) wallCols = cfg.cols;
+    if (cfg.rows) wallRows = cfg.rows;
+    $('wall-cols').textContent = wallCols;
+    $('wall-rows').textContent = wallRows;
+    if (cfg.source) $('wall-source').value = cfg.source;
+    if (cfg.output_res) {
+      $('wall-output-res').value = cfg.output_res;
+      if ($('wall-output-res').value !== cfg.output_res) {
+        // Value not in preset list — treat as custom
+        $('wall-output-res').value = 'custom';
+        $('wall-output-custom').value = cfg.output_res;
+        $('wall-output-custom').style.display = '';
+      }
+    }
+    if (cfg.buffer_frames) $('wall-buffer').value = cfg.buffer_frames;
+    if (cfg.bezel_mm) $('wall-bezel').value = cfg.bezel_mm;
+    if (cfg.target_fps) $('wall-target-fps').value = cfg.target_fps;
+
+    // Restore node assignments
+    if (cfg.nodes) {
+      cfg.nodes.forEach(n => {
+        wallNodeAssignments[`${n.col},${n.row}`] = n.hostname;
+        if (!wallDiscoveredNodes.find(x => x.hostname === n.hostname)) {
+          wallDiscoveredNodes.push({hostname:n.hostname, ip:n.ip||'', port:n.port||5000, online:false, running:false, stats:{}, is_self:false});
+        }
+      });
+    }
+    wallRenderGrid();
+    wallRenderNodeList();
+  } catch(e) {}
+}
+
+// Wall status polling (runs inside refreshStatus)
+function wallUpdateStatus(data) {
+  const wall = data.wall || {};
+  const isRunning = wall.running || _wallRunning;
+  _wallRunning = isRunning;
+  if (isRunning && !_wallStartedHash) _wallStartedHash = _wallConfigHash();
+
+  $('wall-dot').className = 'dot' + (isRunning ? ' running' : '');
+  $('wall-status').textContent = isRunning ? 'RUNNING' : 'STOPPED';
+  $('wall-status').className = 'status-badge ' + (isRunning ? 'running' : 'stopped');
+  _wallCheckDirty();
+  $('wall-stop').disabled = !isRunning;
+  $('wall-stats-wrap').style.display = isRunning ? '' : 'none';
+
+  if (isRunning && wall.stats) {
+    const s = wall.stats;
+    $('wall-source-res').textContent = s.source_w ? `${s.source_w}x${s.source_h}` : '—';
+  }
+}
+
+// Poll wall nodes periodically (less frequent)
+let _wallPollCounter = 0;
+async function wallPollNodes() {
+  _wallPollCounter++;
+  // Every cycle when running, every 3rd when stopped
+  if (!_wallRunning && _wallPollCounter % 3 !== 0) return;
+  try {
+    const resp = await fetch('/api/wall/status');
+    const d = await resp.json();
+
+    _wallRunning = d.wall_running || false;
+
+    if (d.nodes) {
+      d.nodes.forEach(n => {
+        const existing = wallDiscoveredNodes.find(x => x.hostname === n.hostname);
+        if (existing) Object.assign(existing, n);
+        else wallDiscoveredNodes.push(n);
+      });
+      if (!_wallDragging) wallRenderGrid();
+
+      const assigned = d.assigned_count || 0;
+      const running = d.running_count || 0;
+      $('wall-node-count').textContent = assigned;
+      $('wall-running-count').textContent = running;
+
+      // Node stats detail
+      const statsDiv = $('wall-node-stats');
+      if (d.nodes && d.nodes.length) {
+        statsDiv.innerHTML = d.nodes.filter(n => n.col !== null).map(n => {
+          const s = n.stats || {};
+          const fps = s.display_fps || 0;
+          const rfps = s.recv_fps || 0;
+          const color = n.running ? 'var(--accent-green)' : (n.online ? 'var(--text-secondary)' : 'var(--accent-red)');
+          return `<div>[${n.col},${n.row}] <span style="color:var(--text-primary)">${n.hostname}</span> <span style="color:${color}">${fps}</span> fps recv <span style="color:${color}">${rfps}</span> fps</div>`;
+        }).join('');
+      }
+    }
+  } catch(e) {}
+}
+
+wallLoadConfig();
+wallRenderGrid();
+
+// Init
+mvRenderAll();
+mvLoadImages();
+
+// ─── Status Polling ──────────────────────────────────────────────────────
+async function refreshStatus() {
+  try {
+    const data = await api('/status');
+    $('hostname').textContent = data.hostname;
+    const s=data.sender, r=data.receiver;
+
+    // Sender
+    setStatus('sender',s.state);
+    const sR=s.state==='running';
+    $('sender-start').disabled=sR||s.state==='starting'; $('sender-stop').disabled=!sR&&s.state!=='starting';
+    $('sender-stats').style.display=sR?'':'none';
+    if(sR){$('ss-fps').textContent=s.actual_fps;$('ss-frames').textContent=s.frame_count.toLocaleString();$('ss-conns').textContent=s.connections;$('ss-res').textContent=s.width+'×'+s.height;}
+    if(s.error&&s.state==='error'){$('sender-error').textContent=s.error;$('sender-error').style.display='';}
+
+    // Receiver
+    setStatus('receiver',r.state);
+    const rR=r.state==='running';
+    $('receiver-start').disabled=rR||r.state==='starting'||!selectedSource; $('receiver-stop').disabled=!rR&&r.state!=='starting';
+    $('receiver-stats').style.display=rR?'':'none';
+    if(rR){$('rs-fps').textContent=r.actual_fps;$('rs-frames').textContent=r.frame_count.toLocaleString();$('rs-res').textContent=r.width+'×'+r.height;}
+    if(r.error&&r.state==='error'){$('receiver-error').textContent=r.error;$('receiver-error').style.display='';}
+    if(rR){
+      $('preview-wrap').style.display='';$('preview-source').textContent=r.source_name;
+      const img=$('preview-img');
+      if(!img.src.includes('/api/receiver/preview')){img.src='/api/receiver/preview?'+Date.now();img.onload=()=>{$('preview-ph').style.display='none';};}
+    }
+
+    // HDMI outputs
+    const h=data.hdmi||{};
+    [0,1].forEach(idx=>{
+      const hi=h[idx]||h[String(idx)]||{state:'stopped'};
+      setStatus('hdmi'+idx,hi.state);
+      const hR=hi.state==='running';
+      $('hdmi'+idx+'-start').disabled=hR; $('hdmi'+idx+'-stop').disabled=!hR;
+      if(hi.error&&hi.state==='error'){$('hdmi'+idx+'-error').textContent=hi.error;$('hdmi'+idx+'-error').style.display='';}
+      // Stats bar
+      $('hdmi'+idx+'-stats').style.display=hR?'':'none';
+      if(hR){
+        $('hs'+idx+'-fps').textContent=hi.actual_fps||0;
+        $('hs'+idx+'-frames').textContent=(hi.frame_count||0).toLocaleString();
+        const rw=hi.render_w||hi.width||0, rh=hi.render_h||hi.height||0;
+        $('hs'+idx+'-res').textContent=rw&&rh?rw+'×'+rh:'—';
+      }
+    });
+
+    // Autostart (skip checkbox update while API call in flight)
+    const autoList=data.autostart||[];
+    autoList.forEach(a=>{
+      const idx=a.hdmi_index;
+      // Save config so toggle can use it even if dropdown is empty
+      if(a.enabled&&a.source_name) _savedAutostart[idx]=a;
+      if(!_autostartBusy[idx]) {
+        $('auto'+idx+'-enabled').checked=a.enabled;
+        // Keep source dropdown in sync with saved config (if option exists)
+        if(a.enabled&&a.source_name){
+          const sel=$('h'+idx+'-source');
+          if(!sel.value && sel.querySelector('option[value="'+a.source_name+'"]')) sel.value=a.source_name;
+          if(a.width&&a.height){
+            const rsel=$('h'+idx+'-resolution');
+            const resVal=a.width+'x'+a.height;
+            if(!rsel.value || rsel.value==='1920x1080') {
+              if(rsel.querySelector('option[value="'+resVal+'"]')) rsel.value=resVal;
+            }
+          }
+        }
+      }
+      if(a.enabled&&a.source_name){
+        const resL=(a.width&&a.height)?` @ ${a.width}x${a.height}`:' (stream resolution)';
+        $('auto'+idx+'-desc').textContent=`Active: "${a.source_name}"${resL}`;
+      }
+    });
+
+    // Multiview status
+    const mv = data.multiview || {};
+    const mvRunning = mv.running && mv.state === 'running';
+    _mvIsRunning = mvRunning;
+    if (mvRunning && !_mvStartedHash) _mvStartedHash = _mvConfigHash();
+    $('mv-dot').className = 'dot' + (mvRunning ? ' running' : '');
+    $('mv-status').textContent = mvRunning ? 'RUNNING' : (mv.state || 'STOPPED').toUpperCase();
+    $('mv-status').className = 'status-badge ' + (mvRunning ? 'running' : 'stopped');
+    _mvCheckDirty();
+    $('mv-stop').disabled = !mv.running;
+    $('mv-stats-wrap').style.display = mvRunning ? '' : 'none';
+    if (mvRunning) {
+      $('mv-comp-fps').textContent = mv.comp_fps || 0;
+      $('mv-comp-frames').textContent = (mv.comp_frames || 0).toLocaleString();
+      $('mv-screen').textContent = mv.screen || '—';
+      const tiles = mv.tiles || [];
+      $('mv-tile-count').textContent = tiles.length;
+      let tileHtml = '';
+      tiles.forEach((t, i) => {
+        const tallyBadge = t.tally && t.tally !== 'none' ? ` <span style="color:${t.tally==='program'?'var(--accent-red)':'var(--accent-green)'}">[${t.tally.toUpperCase()}]</span>` : '';
+        tileHtml += `<div style="display:grid;grid-template-columns:42px 1fr repeat(3,auto);gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-muted)">Tile ${i}</span>
+          <span style="font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.source || '—'}${tallyBadge}${t.error ? ' <span style="color:var(--accent-red)">'+t.error+'</span>' : ''}</span>
+          <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent-blue);text-align:right">${t.fps} <span style="font-size:0.65rem;color:var(--text-muted)">fps</span></span>
+          <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-primary);text-align:right">${(t.frames||0).toLocaleString()} <span style="font-size:0.65rem;color:var(--text-muted)">fr</span></span>
+          <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent-cyan);text-align:right">${t.res}</span>
+        </div>`;
+      });
+      $('mv-tile-stats').innerHTML = tileHtml;
+    }
+
+    // Multiview autostart
+    const mvAuto = data.mv_autostart || {};
+    if (!_mvAutostartBusy) {
+      $('mv-auto-enabled').checked = mvAuto.enabled;
+    }
+    // Restore saved layout on first load
+    if (!_mvLayoutLoaded && mvAuto.layout_data && mvAuto.layout_data.rows && mvAuto.layout_data.rows.length) {
+      _mvLayoutLoaded = true;
+      mvRows = mvAuto.layout_data.rows.map(r => ({tiles: (r.tiles||[]).map(t => ({source:t.source||'', tally:t.tally||'none', flex:t.flex||1, label:t.label||{}, overlays:t.overlays||[]}))}));
+      if (mvAuto.output_res) $('mv-output-res').value = mvAuto.output_res;
+      if (mvAuto.labels !== undefined) $('mv-labels').checked = mvAuto.labels;
+      mvRenderAll();
+    } else if (!_mvLayoutLoaded) {
+      _mvLayoutLoaded = true;
+    }
+    if (mvAuto.enabled) {
+      const srcCount = mvRows.reduce((s,r) => s + r.tiles.filter(t=>t.source).length, 0);
+      const rowDescs = mvRows.map(r => r.tiles.length);
+      $('mv-auto-desc').textContent = `Active: ${srcCount} source(s), ${mvRows.length} row(s) [${rowDescs.join('+')} tiles]`;
+    } else {
+      $('mv-auto-desc').textContent = 'Start multiview automatically on boot with current tile configuration.';
+    }
+
+    // Video Wall status
+    wallUpdateStatus(data);
+    wallPollNodes();
+
+  } catch(e) { console.warn('Poll failed:',e); }
+}
+
+// ─── System Settings ─────────────────────────────────────────────────────
+async function loadBootMode() {
+  try {
+    const d = await api('/system/bootmode');
+    const sel = $('sys-bootmode');
+    sel.innerHTML = '';
+    const modes = [
+      {value:'B1', label:'CLI (no autologin)'},
+      {value:'B2', label:'CLI + autologin (recommended for NDI player)'},
+      {value:'B3', label:'Desktop (no autologin)'},
+      {value:'B4', label:'Desktop + autologin'},
+    ];
+    modes.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.value; o.textContent = m.label;
+      if (m.value === d.current) o.selected = true;
+      sel.appendChild(o);
+    });
+    $('sys-boot-hint').textContent = d.current_label ? 'Current: ' + d.current_label + '. Changes take effect on next reboot.' : 'Changes take effect on next reboot.';
+  } catch(e) { console.warn('Failed to load boot mode:', e); }
+  // Also load web panel autostart status
+  try {
+    const d = await api('/system/webpanel');
+    $('sys-webpanel-auto').checked = d.enabled;
+    $('sys-webpanel-desc').textContent = d.enabled ? 'Web panel will start on boot' : 'Web panel will NOT start on boot';
+  } catch(e) {}
+  // Load show CLI status
+  try {
+    const d = await api('/system/show-cli');
+    $('sys-show-cli').checked = d.enabled;
+    $('sys-cli-desc').textContent = d.enabled ? 'Terminal with IP address shown when output stops' : 'Screen stays black when output stops';
+  } catch(e) {}
+}
+
+async function webPanelAutostartToggle() {
+  const on = $('sys-webpanel-auto').checked;
+  const d = await api('/system/webpanel', 'POST', {enabled: on});
+  if (d.error) {
+    $('sys-error').textContent = d.error; $('sys-error').style.display='';
+    $('sys-webpanel-auto').checked = !on;
+    return;
+  }
+  $('sys-webpanel-desc').textContent = on ? 'Web panel will start on boot' : 'Web panel will NOT start on boot';
+}
+
+async function showCliToggle() {
+  const on = $('sys-show-cli').checked;
+  try {
+    const resp = await fetch('/api/system/show-cli', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled:on})});
+    const d = await resp.json();
+    if (d.error) {
+      $('sys-error').textContent = d.error; $('sys-error').style.display='';
+      $('sys-show-cli').checked = !on;
+      return;
+    }
+  } catch(e) {
+    $('sys-show-cli').checked = !on;
+    return;
+  }
+  $('sys-cli-desc').textContent = on ? 'Terminal with IP address shown when output stops' : 'Screen stays black when output stops';
+}
+
+async function saveNdiExtraIps() {
+  const ips = $('sys-ndi-extra-ips').value.trim();
+  try {
+    const d = await api('/system/ndi-extra-ips', 'POST', { ips });
+    if (d.error) { $('sys-error').textContent = d.error; $('sys-error').style.display=''; }
+    else { $('sys-error').style.display='none'; $('sys-ndi-hint').textContent = 'Saved. Discovery updated.'; setTimeout(() => { $('sys-ndi-hint').textContent = 'Comma-separated IPs for NDI HX cameras not found by auto-discovery.'; }, 3000); }
+  } catch(e) {}
+}
+
+async function scanNdiIps() {
+  $('sys-ndi-scan').disabled = true;
+  $('sys-ndi-hint').textContent = 'Scanning subnet for NDI devices…';
+  try {
+    const d = await api('/system/ndi-scan', 'POST');
+    if (d.found && d.found.length) {
+      const existing = $('sys-ndi-extra-ips').value.split(',').map(s => s.trim()).filter(Boolean);
+      const merged = [...new Set([...existing, ...d.found])];
+      $('sys-ndi-extra-ips').value = merged.join(', ');
+      $('sys-ndi-hint').textContent = `Found ${d.found.length} device(s): ${d.found.join(', ')}. Click Save to apply.`;
+    } else {
+      $('sys-ndi-hint').textContent = 'No additional NDI devices found on subnet.';
+    }
+  } catch(e) {
+    $('sys-ndi-hint').textContent = 'Scan failed.';
+  }
+  $('sys-ndi-scan').disabled = false;
+}
+
+async function loadNdiExtraIps() {
+  try {
+    const d = await api('/system/ndi-extra-ips');
+    if (d.ips !== undefined) $('sys-ndi-extra-ips').value = d.ips;
+  } catch(e) {}
+}
+
+async function setBootMode() {
+  const mode = $('sys-bootmode').value;
+  if (!mode) return;
+  $('sys-error').style.display='none';
+  const d = await api('/system/bootmode','POST',{mode:mode});
+  if (d.error) { $('sys-error').textContent=d.error; $('sys-error').style.display=''; return; }
+  let hint = 'Boot mode set to: ' + d.label + '. Reboot to apply.';
+  if (mode === 'B1' || mode === 'B2') {
+    // Check if any autostart is enabled
+    const as0 = $('auto0-enabled').checked;
+    const as1 = $('auto1-enabled').checked;
+    if (!as0 && !as1) {
+      hint += ' ⚠ No HDMI autostart is enabled — enable it before rebooting or you will boot to a black screen with no output.';
+    }
+    hint += ' Make sure the web panel service is also set to autostart (see setup guide).';
+  }
+  $('sys-boot-hint').textContent = hint;
+}
+
+async function systemReboot() {
+  if (!confirm('Reboot the Pi now?')) return;
+  $('sys-reboot').disabled=true;
+  await api('/system/reboot','POST');
+  $('sys-boot-hint').textContent = 'Rebooting…';
+}
+
+async function systemShutdown() {
+  if (!confirm('Shut down the Pi now?')) return;
+  $('sys-shutdown').disabled=true;
+  await api('/system/shutdown','POST');
+  $('sys-boot-hint').textContent = 'Shutting down…';
+}
+
+// ─── Benchmark ──────────────────────────────────────────────────────────
+async function runBenchmark() {
+  const sn = $('diag-source').value;
+  if (!sn) { $('diag-error').textContent='Select an NDI source first'; $('diag-error').style.display=''; return; }
+  $('diag-error').style.display='none';
+  $('diag-results').style.display='none';
+  $('diag-run').disabled=true;
+  $('diag-run').textContent='Running…';
+  $('diag-dot').className='dot running';
+  try {
+    const d = await api('/benchmark','POST',{
+      source_name: sn,
+      num_frames: +$('diag-frames').value || 200,
+      timeout_ms: +$('diag-timeout').value || 50,
+    });
+    if (d.error) { $('diag-error').textContent=d.error; $('diag-error').style.display=''; return; }
+    $('diag-results').style.display='';
+    $('dr-fps').textContent = d.avg_fps ? d.avg_fps.toFixed(1) : '—';
+    $('dr-frametime').textContent = d.avg_frame_ms ? d.avg_frame_ms.toFixed(1)+'ms' : '—';
+    $('dr-res').textContent = d.width && d.height ? d.width+'×'+d.height : '—';
+    $('dr-bw').textContent = d.bandwidth_mbps ? d.bandwidth_mbps.toFixed(1)+' Mbps' : '—';
+    $('dr-datarate').textContent = d.data_rate_mbs ? d.data_rate_mbs.toFixed(1)+' MB/s' : '—';
+    $('dr-dropped').textContent = d.missed_frames !== undefined ? d.missed_frames : '—';
+    $('dr-log').textContent = d.log || '';
+  } catch(e) {
+    $('diag-error').textContent = 'Benchmark failed: '+e.message;
+    $('diag-error').style.display='';
+  } finally {
+    $('diag-run').disabled=false;
+    $('diag-run').textContent='Run Benchmark';
+    $('diag-dot').className='dot';
+  }
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────
+loadHdmiOutputs();
+loadBootMode();
+setInterval(refreshStatus, 1500);
+refreshStatus();
+loadNdiExtraIps();
+// Auto-scan on page load, retry once if nothing found
+discoverSources().then(() => {
+  if (!discoveredSources.length) {
+    setTimeout(discoverSources, 3000);
+  }
+});
+</script>
+</body>
+</html>
